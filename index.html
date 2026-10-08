@@ -50,15 +50,18 @@
   --card:#FFFFFF;
   --danger:#B4400E;
   --danger-soft:#FDECE4;
+  --deep:#13463A;        /* เขียวเข้มที่สุด สำหรับหัวข้อใหญ่หน้าแรก (10.69:1 บนขาว) */
+  --band:#FAF8EF;        /* พื้นครีมอ่อนของแถบของรางวัล */
+  --pts-text:#9A6200;    /* ตัวเลขแต้มบนพื้นขาว (5.10:1) ห้ามใช้เหลือง #FFB000 เป็นตัวหนังสือบนขาว */
   --radius:20px;
-  --shadow:0 1px 2px rgba(23,85,63,.06),0 8px 24px rgba(23,85,63,.06);
+  --shadow:0 1px 2px rgba(23,85,63,.05),0 10px 28px -12px rgba(23,85,63,.18);
 }
 *{box-sizing:border-box}
 [hidden]{display:none !important}
 html{scroll-behavior:smooth}
 body{
   margin:0;font-family:'Sarabun',system-ui,sans-serif;font-size:17px;line-height:1.65;color:var(--ink);
-  background:var(--bg) linear-gradient(160deg,#E5F2E9 0%,#F1F5EA 48%,#F7F3E2 100%);
+  background:#EEF4E8 linear-gradient(110deg,#E2F2E4 0%,#ECF4E5 45%,#F6F4E1 100%);
   min-height:100vh;display:flex;flex-direction:column;
 }
 h1,h2,h3,h4,.kanit,.btn,.brand-name,.chip,.tab{font-family:'Kanit',system-ui,sans-serif}
@@ -73,20 +76,23 @@ img{max-width:100%;display:block}
 .wrap{width:100%;max-width:1080px;margin:0 auto;padding:0 16px}
 
 /* ---------- Top bar ---------- */
-.topbar{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30}
-.topbar .wrap{display:flex;align-items:center;gap:12px;min-height:68px}
-.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;flex:1;min-width:0}
-.brand-logo{width:46px;height:46px;border-radius:14px;overflow:hidden;flex:none;display:grid;place-items:center;background:var(--mint)}
+.topbar{background:#fff;border-bottom:1px solid rgba(23,85,63,.08);position:sticky;top:0;z-index:30}
+.topbar .wrap{display:flex;align-items:center;gap:12px;min-height:72px}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit;flex:1;min-width:0}
+.brand-logo{width:46px;height:46px;border-radius:14px;overflow:hidden;flex:none;display:grid;place-items:center;background:var(--forest)}
 .brand-logo img{width:100%;height:100%;object-fit:cover}
-.brand-name{font-weight:700;font-size:1.25rem;color:var(--forest-2);line-height:1.1}
-.brand-sub{font-size:.875rem;color:var(--muted)}
-.navlinks{display:none;gap:6px}
-.navlinks a{font-family:'Kanit';text-decoration:none;color:var(--forest-2);padding:9px 14px;border-radius:12px;background:var(--mint);font-size:.95rem;white-space:nowrap}
+.brand-text{min-width:0;display:flex;flex-direction:column}
+.brand-name{font-weight:700;font-size:1.3rem;color:var(--forest-2);line-height:1.15;white-space:nowrap}
+.brand-sub{font-size:.875rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.navlinks{display:none;gap:8px}
+.navlinks a{font-family:'Kanit';font-weight:500;text-decoration:none;color:var(--forest-2);padding:9px 16px;border-radius:12px;background:var(--mint);font-size:.95rem;white-space:nowrap;transition:background .15s}
+.navlinks a:hover{background:var(--mint-2)}
 .navlinks a.active{background:var(--forest);color:#fff}
 .menu-btn{width:48px;height:48px;border-radius:14px;border:0;background:var(--mint);color:var(--forest-2);display:grid;place-items:center;cursor:pointer}
 .staff-chip{display:none;font-family:'Kanit';font-size:.875rem;background:var(--amber-soft);color:#7A4B00;padding:6px 10px;border-radius:999px;white-space:nowrap}
 .staff-chip.on{display:inline-flex;align-items:center;gap:4px}
-@media (min-width:960px){.navlinks{display:flex}.menu-btn{display:none}}
+@media (max-width:420px){.staff-chip.on{display:none}}
+@media (min-width:1040px){.navlinks{display:flex}.menu-btn{display:none}}
 
 /* ---------- Drawer ---------- */
 .drawer-bg{position:fixed;inset:0;background:rgba(15,40,30,.35);opacity:0;pointer-events:none;transition:.2s;z-index:40}
@@ -99,40 +105,52 @@ body.menu-open .drawer{transform:none}
 .drawer-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 
 /* ---------- Demo bar ---------- */
-.demo{background:#FFF8E1;border-bottom:1px solid #F3DF9C;color:#6B4A00;font-size:.88rem}
-.demo .wrap{padding-top:8px;padding-bottom:8px}
+.demo{padding-top:18px;color:#6B4A00;font-size:.9rem}
+.demo-box{background:#FFFDF3;border:1px solid #F2E2AE;border-radius:16px;padding:12px 16px}
 
 /* ---------- Layout ---------- */
-main{flex:1;padding:22px 0 40px}
-section{margin-bottom:22px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+main{flex:1;padding:24px 0 48px}
+section{margin-bottom:24px}
+.card{background:var(--card);border:1px solid rgba(23,85,63,.07);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
 .card + .card{margin-top:14px}
 .grid3{display:grid;gap:14px;grid-template-columns:1fr}
 .grid2{display:grid;gap:14px;grid-template-columns:1fr}
-@media (min-width:640px){.reward-img{aspect-ratio:4/3}.grid3{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:640px){.grid3{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:repeat(2,1fr)}}
 @media (min-width:900px){.grid3{grid-template-columns:repeat(3,1fr)}}
-.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+.sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}
 .sec-head h2{margin:0}
+.eyebrow{font-family:'Kanit';font-weight:500;font-size:.9rem;color:var(--emerald-text);margin:0 0 2px}
+.sec-link{font-family:'Kanit';font-weight:500;color:var(--emerald-text);text-underline-offset:4px;white-space:nowrap}
+/* แถบพื้นครีมเต็มความกว้างจอ (ไม่ทำให้หน้าเลื่อนด้านข้าง) */
+.band{background:var(--band);box-shadow:0 0 0 100vmax var(--band);-webkit-clip-path:inset(0 -100vmax);clip-path:inset(0 -100vmax);padding:30px 0 34px;margin:34px 0 0}
+#app > .band:last-child{margin-bottom:-48px;padding-bottom:52px}
+main{display:flex;flex-direction:column}
+#app{flex:1 0 auto}
+#app:has(> .band:last-child){display:flex;flex-direction:column}
+#app > .band:last-child{flex:1 0 auto}
 
-/* ---------- Hero ---------- */
-.hero{position:relative;overflow:hidden;background:linear-gradient(160deg,#F4FAF6 0%,#EAF4EC 60%,#F6F2DF 100%);border:1px solid var(--line);border-radius:28px;padding:28px 20px}
-.hero-title{font-size:clamp(2.4rem,9vw,3.6rem);font-weight:700;color:var(--forest-2);margin:10px 0 6px;letter-spacing:-.5px}
-.hero-title .pt{color:var(--emerald)}
-.hero-lead{font-family:'Kanit';font-weight:600;font-size:clamp(1.25rem,4.6vw,1.6rem);color:var(--forest);margin:0 0 8px}
-.hero-desc{max-width:46ch;color:#2F3B35;margin:0;font-size:1.06rem}
-.hero-desc strong{color:var(--forest-2)}
-.hero-deco{position:absolute;right:-70px;top:-70px;opacity:.28;pointer-events:none}
-.hero > *:not(.hero-deco){position:relative}
-.pill{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-family:'Kanit';font-size:.875rem;color:var(--forest)}
-@media (min-width:768px){.hero{padding:44px 44px}}
-@media (max-width:759px){
-  .hero{padding:24px 18px}
+/* ---------- Hero: ข้อความซ้าย รูปขวา (จอเล็กเรียงบนลงล่าง) ---------- */
+.hero{display:grid;gap:24px;align-items:center;margin-bottom:0;background:linear-gradient(115deg,#F3F9F3 0%,#EDF5E9 55%,#F8F6E7 100%);border:1px solid rgba(23,85,63,.07);border-radius:28px;padding:24px 18px;box-shadow:0 1px 2px rgba(23,85,63,.05),0 22px 44px -22px rgba(23,85,63,.30)}
+.hero-pill{display:inline-flex;align-items:center;gap:6px;background:var(--mint);color:var(--emerald-text);border-radius:999px;padding:6px 14px;font-family:'Kanit';font-weight:500;font-size:.9rem}
+.hero h1{font-size:clamp(2.1rem,7vw,2.8rem);font-weight:700;color:var(--deep);line-height:1.3;margin:14px 0 10px}
+.hero-desc{max-width:42ch;color:var(--muted);margin:0;font-size:1.08rem}
+.hero-actions{display:grid;gap:12px;margin-top:22px}
+.hero-actions .btn{min-height:58px;border-radius:16px;font-size:1.05rem}
+.hero-media{border-radius:20px;overflow:hidden;aspect-ratio:16/10;background:#DDEFE3}
+.hero-media > img,.hero-media > svg{width:100%;height:100%;object-fit:cover;display:block}
+@media (min-width:600px){.hero{padding:32px 30px}.hero-actions{grid-template-columns:repeat(3,minmax(0,1fr))}.hero-actions .btn{padding:10px 12px}}
+@media (min-width:960px){
+  .hero{grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:44px;padding:46px 48px}
+  .hero-actions{display:flex;flex-wrap:wrap;gap:10px}
+  .hero-actions .btn{flex:1 1 auto;min-height:54px;padding:10px 15px;font-size:1rem}
+  .hero-media{aspect-ratio:5/4}
 }
 
 /* ---------- Buttons ---------- */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:10px 20px;border-radius:14px;border:0;font-size:1rem;font-weight:500;text-decoration:none;cursor:pointer;transition:transform .05s,filter .15s;text-align:center;line-height:1.3}
 .btn:active{transform:translateY(1px)}
-.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn:disabled,.btn.is-busy{opacity:.55;cursor:not-allowed}
+.btn.is-busy{pointer-events:none}
 .btn-primary{background:var(--forest);color:#fff}
 .btn-primary:hover{filter:brightness(1.08)}
 .btn-amber{background:var(--amber);color:#3D2A00}
@@ -143,16 +161,18 @@ section{margin-bottom:22px}
 .btn-lg{min-height:60px;font-size:1.08rem;border-radius:18px;padding:12px 22px}
 .btn-block{width:100%}
 .btn-sm{min-height:38px;padding:6px 12px;font-size:.9rem;border-radius:11px}
-.actions{display:grid;gap:12px;grid-template-columns:1fr}
-@media (min-width:760px){.actions{grid-template-columns:repeat(3,1fr)}}
 
-/* ---------- Rewards ---------- */
-.reward{display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+/* ---------- Rewards: การ์ดขาว รูปอยู่ในกรอบมุมมน ---------- */
+.reward{display:flex;flex-direction:column;background:#fff;border:1px solid rgba(23,85,63,.06);border-radius:22px;padding:10px;box-shadow:var(--shadow)}
 .reward-img{aspect-ratio:16/9;display:grid;place-items:center;position:relative}
+.reward > .reward-img{border-radius:15px;overflow:hidden}
 .reward-img img{width:100%;height:100%;object-fit:cover}
-.reward-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px;flex:1}
-.reward-name{font-family:'Kanit';font-weight:600;font-size:1.1rem;color:var(--forest-2);line-height:1.3}
+.reward-body{padding:12px 8px 6px;display:flex;flex-direction:column;gap:5px;flex:1}
+.reward-name{font-family:'Kanit';font-weight:600;font-size:1.12rem;color:var(--ink);line-height:1.3}
 .reward-desc{color:var(--muted);font-size:.95rem;flex:1}
+.reward-pts{font-family:'Kanit';font-weight:500;color:var(--pts-text);font-size:1rem;margin-top:2px}
+.reward-pts b{font-weight:600;font-size:1.15rem}
+.reward .btn{min-height:50px;margin-top:10px}
 .pts{display:inline-flex;align-items:baseline;gap:4px;background:var(--amber-soft);color:#7A4B00;border-radius:999px;padding:4px 12px;font-family:'Kanit';font-weight:600;align-self:flex-start}
 .pts b{font-size:1.15rem;color:#5C3A00}
 .chip{display:inline-block;font-size:.875rem;padding:3px 10px;border-radius:999px;background:var(--mint);color:var(--forest)}
@@ -266,13 +286,23 @@ input:focus,select:focus,textarea:focus{outline:3px solid rgba(27,156,133,.25);b
 .success{text-align:center;padding:28px 20px}
 .success .big{font-family:'Kanit';font-size:3rem;font-weight:700;color:var(--emerald);line-height:1}
 
-/* ---------- Footer ---------- */
-footer{background:#fff;border-top:1px solid var(--line);padding:18px 0;margin-top:auto}
-footer .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+/* ---------- Footer: แถบอ่อน + แถบเข้ม ---------- */
+footer{margin-top:auto}
+.foot-strip{background:linear-gradient(110deg,#E2F2E4 0%,#F6F4E1 100%);padding:18px 0;border-top:1px solid rgba(23,85,63,.06)}
+.foot-strip .wrap,.foot-bar .wrap{display:flex;align-items:center;justify-content:space-between;gap:10px 18px;flex-wrap:wrap}
+.foot-brand{font-family:'Kanit';color:var(--forest-2)}
+.foot-brand b{font-weight:600}
+.foot-brand span{color:var(--emerald-text);margin-left:8px}
+.foot-links{display:flex;gap:18px;flex-wrap:wrap}
+.foot-links a{color:var(--forest-2);font-size:.95rem;text-underline-offset:4px}
+.foot-bar{background:var(--ink);color:#fff;padding:16px 0;font-size:.92rem}
+.foot-bar b{font-weight:600}
 .socials{display:flex;gap:8px}
-.line{display:inline-grid;place-items:center;width:42px;height:42px;border-radius:12px;background:#06C755;color:#fff;text-decoration:none;font-family:'Kanit';font-weight:700;font-size:.875rem}
-.line[hidden]{display:none}
-.fb{display:inline-grid;place-items:center;width:42px;height:42px;border-radius:12px;background:#1877F2;color:#fff;text-decoration:none}
+.socials a{display:inline-grid;place-items:center;width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.09);color:#fff;text-decoration:none;transition:background .15s}
+.socials a:hover{background:rgba(255,255,255,.18)}
+.socials a[hidden]{display:none}
+.socials .line{font-family:'Kanit';font-weight:600;font-size:.8rem;letter-spacing:.3px}
+.foot-bar a:focus-visible{outline-color:#fff}
 
 /* ---------- Toast / loading ---------- */
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 18px;border-radius:14px;opacity:0;pointer-events:none;transition:.25s;z-index:60;max-width:calc(100vw - 32px);font-size:.95rem;text-align:center}
@@ -315,9 +345,9 @@ a:focus-visible,button:focus-visible,.btn:focus-visible,.tab:focus-visible,.meth
   <div class="wrap">
     <a class="brand" href="#/">
       <span class="brand-logo" id="brandLogo"></span>
-      <span style="min-width:0">
-        <span class="brand-name">อยู่ดีมีแต้ม</span><br>
-        <span class="brand-sub">เล็กๆ ก็มีแต้ม</span>
+      <span class="brand-text">
+        <span class="brand-name">อยู่ดีมีแต้ม</span>
+        <span class="brand-sub">ริเริ่มโดย ตลิ่งชันอยากอยู่ดี</span>
       </span>
     </a>
     <span class="staff-chip" id="staffChip"></span>
@@ -327,24 +357,28 @@ a:focus-visible,button:focus-visible,.btn:focus-visible,.tab:focus-visible,.meth
     </button>
   </div>
 </header>
-<div class="demo" id="demoBar" hidden><div class="wrap">
-  <b>โหมดทดลอง</b> — ข้อมูลไม่ถูกบันทึกจริง ·
+<div class="demo" id="demoBar" hidden><div class="wrap"><div class="demo-box">
+  <b>โหมดทดลอง</b> ข้อมูลไม่ถูกบันทึกจริง ·
   สมาชิกทดลอง <span class="nowrap">081-234-5678</span> PIN <span class="nowrap">246810</span> ·
   เจ้าหน้าที่ <span class="nowrap">admin / demo1234</span>
-</div></div>
+</div></div></div>
 
 <main><div class="wrap" id="app"><div class="skeleton"></div></div></main>
 
 <footer>
-  <div class="wrap">
-    <span class="small">©2026 <b>อยู่ดีมีแต้ม</b> · ริเริ่มโดย <b>ตลิ่งชันอยากอยู่ดี</b><br><a href="#/privacy">นโยบายความเป็นส่วนตัว</a></span>
+  <div class="foot-strip"><div class="wrap">
+    <span class="foot-brand"><b>อยู่ดีมีแต้ม</b><span>เล็กๆ ก็มีแต้ม</span></span>
+    <nav class="foot-links" aria-label="ลิงก์ท้ายเว็บ"><a href="#/contact">ติดต่อเรา</a><a href="#/privacy">นโยบายความเป็นส่วนตัว</a></nav>
+  </div></div>
+  <div class="foot-bar"><div class="wrap">
+    <span>©2026 <b>อยู่ดีมีแต้ม</b> · ริเริ่มโดย <b>ตลิ่งชันอยากอยู่ดี</b></span>
     <span class="socials">
       <a class="line" id="footerLine" href="#" target="_blank" rel="noopener" aria-label="LINE อยู่ดีมีแต้ม" hidden>LINE</a>
-      <a class="fb" id="footerFb" href="#" target="_blank" rel="noopener" aria-label="Facebook">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 8h3V4h-3c-2.8 0-5 2.2-5 5v2H7v4h2v9h4v-9h3l1-4h-4V9c0-.6.4-1 1-1z"/></svg>
+      <a class="fb" id="footerFb" href="#" target="_blank" rel="noopener" aria-label="Facebook อยู่ดีมีแต้ม">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M14 8h3V4h-3c-2.8 0-5 2.2-5 5v2H7v4h2v9h4v-9h3l1-4h-4V9c0-.6.4-1 1-1z"/></svg>
       </a>
     </span>
-  </div>
+  </div></div>
 </footer>
 
 <div class="drawer-bg" id="drawerBg"></div>
@@ -400,7 +434,7 @@ const PUB_KEY = 'yd_pub_' + KEY_SUFFIX, ME_KEY = 'yd_me_' + KEY_SUFFIX;
 const DEFAULT_PUB = () => ({
   settings:{ siteName:'อยู่ดีมีแต้ม', logoUrl:'', facebookPage:'', email:'YoodeeMeetaem@gmail.com', dataController:'สุธินี ศรีนอก',
     dataControllerAddress:'40 ถนนจรัญสนิทวงศ์ ซอย 73 แขวงบางพลัด เขตบางพลัด กรุงเทพมหานคร 10700',
-    brandFacebook:'https://www.facebook.com/yoodeemeetaem/', brandLine:'https://lin.ee/q4KuQkd', pointsPerBaht:'10', postMinPoints:'500' },
+    brandFacebook:'https://www.facebook.com/yoodeemeetaem/', brandLine:'https://lin.ee/q4KuQkd', pointsPerBaht:'10', postMinPoints:'500', heroImageUrl:'' },
   wasteTypes:[], rewards:[], dropoffs:[]
 });
 
@@ -559,7 +593,7 @@ function renderShell(){
   $('#drawerLinks').innerHTML = NAV.map(([r,t,i]) => `<a href="#/${r}" class="${cur===r?'active':''}">${ic(i)} ${t}</a>`).join('')
     + `<div class="sep"></div><a href="#/staff" class="${cur==='staff'?'active':''}">${ic('lock')} เข้าสู่ระบบ (สำหรับเจ้าหน้าที่)</a>`;
   const logo = S.pub && S.pub.settings.logoUrl;
-  $('#brandLogo').innerHTML = logo ? `<img src="${esc(logo)}" alt="โลโก้">` : capSvg(42);
+  $('#brandLogo').innerHTML = logo ? `<img src="${esc(logo)}" alt="โลโก้">` : capSvg(40, '#FFFFFF', '#17553F');
   if(logo) $('#favicon').href = logo;
   const chip = $('#staffChip');
   if(S.staff){ chip.innerHTML = ic('user',16) + ' ' + esc(S.staff.displayName); chip.classList.add('on'); } else chip.classList.remove('on');
@@ -603,9 +637,9 @@ function rewardCard(r){
     <div class="reward-name">${esc(r.name)}</div>
     <div class="reward-desc">${esc(r.description)}</div>
     ${r.sponsor ? `<div class="small muted">สนับสนุนโดย <b>${esc(r.sponsor)}</b></div>` : ''}
-    <span class="pts"><b>${n(r.points)}</b> แต้ม</span>
-    ${isOut(r) ? `<button class="btn btn-soft btn-block" disabled style="margin-top:8px">ของหมดแล้ว</button>`
-      : `<a class="btn btn-amber btn-block" style="margin-top:8px" href="#/redeem?id=${encodeURIComponent(r.id)}">${ic('gift',20)} แลกของรางวัล</a>`}
+    <div class="reward-pts"><b>${n(r.points)}</b> แต้ม</div>
+    ${isOut(r) ? `<button class="btn btn-soft btn-block" disabled>ของหมดแล้ว</button>`
+      : `<a class="btn btn-amber btn-block" href="#/redeem?id=${encodeURIComponent(r.id)}">${ic('gift',20)} แลกของรางวัล</a>`}
   </div></article>`;
 }
 function homePicks(){
@@ -615,26 +649,65 @@ function homePicks(){
   rs.forEach(r => { if(!picked.includes(r)) picked.push(r); });
   return picked.slice(0,3);
 }
+/* รูปหน้าแรก: รูปจริงที่แอดมินอัปโหลด หรือภาพวาดจุดรับขยะ (ถังเหลือง = ขยะรีไซเคิล ตามมาตรฐานกรมควบคุมมลพิษ) */
+function heroMedia(){
+  const url = S.pub && S.pub.settings.heroImageUrl;
+  return url ? `<img src="${esc(url)}" alt="จุดรับขยะอยู่ดีมีแต้ม" decoding="async">` : heroArt();
+}
+function capMini(x, y, size, ring, fill){
+  let r=''; for(let i=0;i<24;i++){ const a=i/24*Math.PI*2; r+=`<circle cx="${(32+27.5*Math.cos(a)).toFixed(2)}" cy="${(32+27.5*Math.sin(a)).toFixed(2)}" r="3.6"/>`; }
+  return `<svg x="${x}" y="${y}" width="${size}" height="${size}" viewBox="0 0 64 64"><g fill="${ring}">${r}<circle cx="32" cy="32" r="27.5"/></g><circle cx="32" cy="32" r="19" fill="${fill}"/></svg>`;
+}
+function heroArt(){
+  const o = 'stroke="#17553F" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"';
+  return `<svg viewBox="40 96 520 416" preserveAspectRatio="xMidYMid slice" role="img" aria-label="ภาพวาดจุดรับขยะ: ถังรีไซเคิลสีเหลือง ขวดพลาสติก กระป๋อง และฝาขวด">
+  <rect width="600" height="480" fill="#E4F2E8"/>
+  <path d="M0 292 C110 250 210 262 318 292 S520 252 600 278 V480 H0Z" fill="#CDE7D5"/>
+  <path d="M0 352 C160 330 440 330 600 352 V480 H0Z" fill="#B9DEC6"/>
+  <path d="M0 424 C70 414 140 432 210 424 S350 414 420 424 S540 432 600 422 V480 H0Z" fill="#A6DCE9"/>
+  <path d="M40 446 q20 -8 40 0 t40 0 M200 452 q20 -8 40 0 t40 0 M380 446 q20 -8 40 0 t40 0" fill="none" stroke="#00A8CC" stroke-width="4" stroke-linecap="round" opacity=".55"/>
+  <rect x="90" y="236" width="18" height="122" rx="7" fill="#17553F"/>
+  <circle cx="99" cy="214" r="58" fill="#1B9C85"/><circle cx="62" cy="252" r="36" fill="#1B9C85"/><circle cx="140" cy="250" r="38" fill="#23A58C"/>
+  <path d="M178 302 Q178 287 190 281 V268 H210 V281 Q222 287 222 302 V378 Q222 386 214 386 H186 Q178 386 178 378 Z" fill="#CDEFF6" ${o}/>
+  <rect x="186" y="252" width="28" height="17" rx="5" fill="#1F6B4F" ${o}/>
+  <rect x="180" y="322" width="40" height="22" fill="#00A8CC"/>
+  <path d="M246 232 H394 L382 376 Q381 386 371 386 H269 Q259 386 258 376 Z" fill="#FFB000" ${o}/>
+  <path d="M288 338 V370 M320 338 V370 M352 338 V370" stroke="#E39A00" stroke-width="6" stroke-linecap="round"/>
+  <rect x="236" y="206" width="168" height="30" rx="11" fill="#E39A00" ${o}/>
+  <path d="M302 206 V196 Q302 189 309 189 H331 Q338 189 338 196 V206" fill="none" ${o}/>
+  <rect x="284" y="256" width="72" height="66" rx="12" fill="#FFFFFF" ${o}/>
+  ${capMini(296, 265, 48, '#1F6B4F', '#E7F3EC')}
+  <circle cx="278" cy="390" r="12" fill="#17553F"/><circle cx="362" cy="390" r="12" fill="#17553F"/>
+  <rect x="414" y="318" width="46" height="68" rx="9" fill="#DCE5E1" ${o}/>
+  <rect x="416" y="340" width="42" height="16" fill="#1B9C85"/>
+  <ellipse cx="437" cy="319" rx="23" ry="7" fill="#F3F7F5" ${o}/>
+  ${capMini(132, 360, 34, '#FFB000', '#FFE29A')}${capMini(476, 362, 30, '#1F6B4F', '#7CCBA8')}${capMini(512, 382, 24, '#006B8A', '#A6DCE9')}
+  <path d="M402 192 L384 218 L428 198 Z" fill="#17553F"/>
+  <rect x="388" y="146" width="146" height="54" rx="27" fill="#17553F"/>
+  <text x="461" y="182" text-anchor="middle" font-family="Kanit, system-ui, sans-serif" font-weight="600" font-size="25" fill="#FFB000">+15 แต้ม</text>
+</svg>`;
+}
 function pageHome(){
   const grid = S.pubLoaded
     ? (homePicks().map(r => rewardCard(r)).join('') || '<p class="muted">ยังไม่มีรายการของรางวัล</p>')
     : (waitPub() || skelCards(3));
   view(`
   <section class="hero">
-    <div class="hero-deco">${capSvg(220,'#D6EBDF','#EEF6F1')}</div>
-    <h1 class="hero-title">อยู่ดี<span class="pt">มีแต้ม</span></h1>
-    <p class="hero-lead">เล็กๆ ก็มีแต้ม</p>
-    <p class="hero-desc">นำ<span class="nowrap">ขยะรีไซเคิล</span>ที่แยกแล้วมาที่<span class="nowrap">จุดรับ</span> <span class="nowrap">เจ้าหน้าที่</span>ชั่งและ<span class="nowrap">ให้แต้มทันที</span> สะสมไว้<span class="nowrap">แลกของใช้</span> <span class="nowrap">แต้มไม่มีวันหมดอายุ</span></p>
+    <div class="hero-text">
+      <span class="hero-pill">สมัครฟรี · แต้มไม่มีวันหมดอายุ</span>
+      <h1>เล็กๆ ก็มีแต้ม</h1>
+      <p class="hero-desc">นำ<span class="nowrap">ขยะรีไซเคิล</span>ที่แยกแล้วมาที่<span class="nowrap">จุดรับ</span> <span class="nowrap">เจ้าหน้าที่</span>ชั่งและ<span class="nowrap">ให้แต้มทันที</span> สะสมไว้<span class="nowrap">แลกของใช้</span></p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#/earn">${ic('recycle')} แลกขยะสะสมแต้ม</a>
+        <a class="btn btn-amber" href="#/rewards">${ic('gift')} แลกของรางวัล</a>
+        <a class="btn btn-blue" href="#/dropoff">${ic('pin')} จุดรับขยะ</a>
+      </div>
+    </div>
+    <div class="hero-media">${heroMedia()}</div>
   </section>
 
-  <section class="actions">
-    <a class="btn btn-primary btn-lg" href="#/earn">${ic('recycle')} แลกขยะสะสมแต้ม</a>
-    <a class="btn btn-amber btn-lg" href="#/rewards">${ic('gift')} แลกของรางวัล</a>
-    <a class="btn btn-blue btn-lg" href="#/dropoff">${ic('pin')} จุดรับขยะ (Drop-off)</a>
-  </section>
-
-  <section>
-    <div class="sec-head"><h2>ของรางวัลที่แลกได้</h2><a href="#/rewards" class="kanit">ดูทั้งหมด →</a></div>
+  <section class="band">
+    <div class="sec-head"><div><p class="eyebrow">จัดส่งฟรี</p><h2>ของรางวัลที่แลกได้</h2></div><a href="#/rewards" class="sec-link">ดูของรางวัลทั้งหมด</a></div>
     <div class="grid3">${grid}</div>
   </section>`);
 }
@@ -1588,9 +1661,16 @@ function tabSettings(){
   $('#sBody').innerHTML = `
   <div class="card"><h3>โลโก้เว็บไซต์</h3>
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
-      <div class="brand-logo" style="width:88px;height:88px;border-radius:22px" id="logoPrev">${st.logoUrl ? `<img src="${esc(st.logoUrl)}" alt="โลโก้">` : capSvg(80)}</div>
+      <div class="brand-logo" style="width:88px;height:88px;border-radius:22px" id="logoPrev">${st.logoUrl ? `<img src="${esc(st.logoUrl)}" alt="โลโก้">` : capSvg(72, '#FFFFFF', '#17553F')}</div>
       <label class="btn btn-soft" style="cursor:pointer">อัปโหลดโลโก้ใหม่<input type="file" id="logoIn" accept="image/*" hidden></label>
     </div><p class="hint">แนะนำรูปสี่เหลี่ยมจัตุรัส พื้นหลังไม่โปร่งใส</p></div>
+  <div class="card"><h3>รูปหน้าแรก</h3>
+    <div class="hero-media" id="heroPrev" style="max-width:420px">${st.heroImageUrl ? `<img src="${esc(st.heroImageUrl)}" alt="รูปหน้าแรก">` : heroArt()}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <label class="btn btn-soft" style="cursor:pointer">อัปโหลดรูปหน้าแรก<input type="file" id="heroIn" accept="image/*" hidden></label>
+      <button class="btn btn-ghost" id="heroDel" ${st.heroImageUrl ? '' : 'hidden'}>ใช้ภาพวาดแทน</button>
+    </div>
+    <p class="hint">ใช้รูปแนวนอนที่ถ่ายเอง เช่น จุดรับขยะ ถังรับขยะ หรือกิจกรรมในชุมชน · ถ้ามีคนในรูปที่เห็นหน้าชัด ขออนุญาตก่อน · ยังไม่อัปโหลด เว็บจะแสดงภาพวาดจุดรับขยะ</p></div>
   <div class="card"><h3>ลิงก์และข้อมูลติดต่อ</h3>
     <h4 class="kanit" style="margin:4px 0 0;color:var(--forest-2)">อยู่ดีมีแต้ม</h4>
     <label class="f">E-mail ของอยู่ดีมีแต้ม</label><input id="s_em" value="${esc(st.email)}">
@@ -1615,6 +1695,30 @@ function tabSettings(){
       if(S.sb && S.sb.settings) S.sb.settings.logoUrl = url;
       renderShell(); toast('เปลี่ยนโลโก้แล้ว');
     }catch(err){ toast(err.message, true); }
+  };
+  const setHero = (url, msg) => {
+    S.pub.settings.heroImageUrl = url; saveJSON(PUB_KEY, S.pub);
+    if(S.sb && S.sb.settings) S.sb.settings.heroImageUrl = url;
+    $('#heroPrev').innerHTML = url ? `<img src="${esc(url)}" alt="รูปหน้าแรก">` : heroArt();
+    $('#heroDel').hidden = !url; toast(msg);
+  };
+  const heroErr = err => toast(isUnknownAction(err) ? 'ต้องอัปเดตโค้ดหลังบ้าน (Code.gs) เป็นรุ่นล่าสุดก่อน จึงจะเปลี่ยนรูปหน้าแรกได้' : err.message, true);
+  $('#heroIn').onchange = async e => {
+    const f = e.target.files[0]; if(!f) return;
+    const lbl = e.target.closest('label'); lbl.classList.add('is-busy');
+    try{
+      const data = await compressImage(f, 1600, .82);
+      const r = await api('adminSetImage', { kind:'hero', photo:data }, S.stoken);
+      setHero(DEMO ? data : r.url, 'เปลี่ยนรูปหน้าแรกแล้ว');
+    }catch(err){ heroErr(err); }
+    finally{ lbl.classList.remove('is-busy'); e.target.value = ''; }
+  };
+  $('#heroDel').onclick = e => {
+    if(!confirm('เอารูปหน้าแรกออก แล้วใช้ภาพวาดแทน?')) return;
+    busy(e.currentTarget, async () => {
+      try{ await api('adminSetImage', { kind:'hero', remove:true }, S.stoken); setHero('', 'เอารูปหน้าแรกออกแล้ว'); }
+      catch(err){ heroErr(err); }
+    });
   };
   $('#setBtn').onclick = e => busy(e.currentTarget, async () => {
     const out = await api('adminSaveSettings', { facebookPage:$('#s_fp').value, email:$('#s_em').value, dataController:$('#s_dc').value, dataControllerAddress:$('#s_da').value, brandFacebook:$('#s_bf').value, brandLine:$('#s_bl').value, requirePhoto:$('#s_rp').checked, postMinPoints:$('#s_pm').value }, S.stoken);
@@ -1649,7 +1753,7 @@ function compressImage(file, max, q){
 const MOCK = (() => {
   const ago = d => new Date(Date.now() - d*864e5).toISOString();
   return {
-    settings:{ siteName:'อยู่ดีมีแต้ม', logoUrl:'', facebookPage:'', email:'YoodeeMeetaem@gmail.com', dataController:'สุธินี ศรีนอก', dataControllerAddress:'40 ถนนจรัญสนิทวงศ์ ซอย 73 แขวงบางพลัด เขตบางพลัด กรุงเทพมหานคร 10700', brandFacebook:'https://www.facebook.com/yoodeemeetaem/', brandLine:'https://lin.ee/q4KuQkd', requirePhoto:'true', pointsPerBaht:'10', postMinPoints:'500' },
+    settings:{ siteName:'อยู่ดีมีแต้ม', logoUrl:'', facebookPage:'', email:'YoodeeMeetaem@gmail.com', dataController:'สุธินี ศรีนอก', dataControllerAddress:'40 ถนนจรัญสนิทวงศ์ ซอย 73 แขวงบางพลัด เขตบางพลัด กรุงเทพมหานคร 10700', brandFacebook:'https://www.facebook.com/yoodeemeetaem/', brandLine:'https://lin.ee/q4KuQkd', requirePhoto:'true', pointsPerBaht:'10', postMinPoints:'500', heroImageUrl:'' },
     wasteTypes:[
       { wasteTypeId:'WT01', name:'ขวดพลาสติกใส (PET)', unit:'กก.', pointsPerUnit:21, salePrice:7, description:'ล้าง เทน้ำออก บีบให้แบน', active:true, sort:1 },
       { wasteTypeId:'WT02', name:'ฝาขวดพลาสติก', unit:'กก.', pointsPerUnit:15, salePrice:3, description:'ล้างสะอาด แยกจากขวด', active:true, sort:2 },
@@ -1702,10 +1806,10 @@ function mockApi(action, p, token){
   const wtView = t => ({ wasteTypeId:t.wasteTypeId, name:t.name, unit:t.unit, pointsPerUnit:Number(t.pointsPerUnit), description:t.description, active:!!t.active, sort:Number(t.sort)||0, salePrice:Number(t.salePrice)||0 });
   const rwView = r => ({ rewardId:r.rewardId, name:r.name, category:r.category, points:r.points, cost:Number(r.cost)||0, description:r.description, images:r.imageUrls ? r.imageUrls.split('\n') : [], stock:r.stock === '' ? '' : Number(r.stock), active:!!r.active, sort:Number(r.sort)||0, kind:r.kind === 'coupon' ? 'coupon' : 'item', sponsor:r.sponsor || '' });
   const bySort = (a,b) => (Number(a.sort)||0) - (Number(b.sort)||0);
-  const PUBLIC_KEYS = ['siteName','logoUrl','facebookPage','email','dataController','dataControllerAddress','pointsPerBaht','postMinPoints','brandFacebook','brandLine'];
+  const PUBLIC_KEYS = ['siteName','logoUrl','heroImageUrl','facebookPage','email','dataController','dataControllerAddress','pointsPerBaht','postMinPoints','brandFacebook','brandLine'];
   const EDIT_KEYS = ['facebookPage','email','dataController','dataControllerAddress','requirePhoto','postMinPoints','brandFacebook','brandLine'];
   const publicSettings = () => Object.fromEntries(PUBLIC_KEYS.map(k => [k, M.settings[k] || '']));
-  const adminSettings = () => Object.assign({ logoUrl:M.settings.logoUrl || '' }, Object.fromEntries(EDIT_KEYS.map(k => [k, M.settings[k] ?? ''])));
+  const adminSettings = () => Object.assign({ logoUrl:M.settings.logoUrl || '', heroImageUrl:M.settings.heroImageUrl || '' }, Object.fromEntries(EDIT_KEYS.map(k => [k, M.settings[k] ?? ''])));
   const payload = (m, isNew) => {
     const reds = isNew ? [] : M.redemptions.filter(r => r.memberId === m.memberId).slice().reverse();
     const last = reds.find(r => r.address);
@@ -1921,6 +2025,14 @@ function mockApi(action, p, token){
       return { settings:publicSettings(), admin:adminSettings() };
     }
     case 'adminUploadLogo': needStaff(true); M.settings.logoUrl = p.photo; return { logoUrl:p.photo };
+    case 'adminSetImage': {
+      needStaff(true);
+      const key = p.kind === 'hero' ? 'heroImageUrl' : p.kind === 'logo' ? 'logoUrl' : '';
+      if(!key) err('ประเภทรูปไม่ถูกต้อง');
+      if(!p.remove && !/^data:image\/(jpeg|png|webp);base64,/.test(String(p.photo||''))) err('ไฟล์รูปไม่ถูกต้อง');
+      M.settings[key] = p.remove ? '' : p.photo;
+      return { url:M.settings[key], settings:publicSettings() };
+    }
   }
   err('ไม่รู้จักคำสั่งนี้');
 }
