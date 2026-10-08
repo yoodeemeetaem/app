@@ -5,7 +5,21 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>อยู่ดีมีแต้ม</title>
 <meta name="description" content="อยู่ดีมีแต้ม · เล็กๆ ก็มีแต้ม นำขยะรีไซเคิลที่แยกแล้วมาสะสมแต้ม แลกของจากร้านในชุมชน">
-<link rel="icon" id="favicon" href="data:,">
+<link rel="icon" id="favicon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="canonical" href="https://yoodeemeetaem.github.io/app/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="อยู่ดีมีแต้ม">
+<meta property="og:locale" content="th_TH">
+<meta property="og:url" content="https://yoodeemeetaem.github.io/app/">
+<meta property="og:title" content="อยู่ดีมีแต้ม · เล็กๆ ก็มีแต้ม">
+<meta property="og:description" content="นำขยะรีไซเคิลที่แยกแล้วมาสะสมแต้ม แลกของจากร้านในชุมชน สมัครฟรี แต้มไม่มีวันหมดอายุ">
+<meta property="og:image" content="https://yoodeemeetaem.github.io/app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="โลโก้ฝาขวดและข้อความ อยู่ดีมีแต้ม เล็กๆ ก็มีแต้ม">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#1F6B4F">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -346,7 +360,7 @@ a:focus-visible,button:focus-visible,.btn:focus-visible,.tab:focus-visible,.meth
  *  ตั้งค่า: วาง Web app URL จาก Apps Script ระหว่าง ' '
  *  ถ้าเว้นว่างไว้ = โหมดทดลอง (ข้อมูลไม่ถูกบันทึกจริง)
  * ========================================================= */
-const API_URL = '';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwVSoPA1iyRfRX1KdIjylG5rqAZoJ6t82A0Kac3Q930vsq2FoBiksU12UST2elOS_qD/exec';
 
 const DEMO = !API_URL;
 const CAT = { household:'สินค้าจำเป็นในครัวเรือน', local:'สินค้าและบริการในตลิ่งชัน', green:'สินค้ากรีนและอัปไซเคิล' };
@@ -454,7 +468,7 @@ function renderShell(){
     + `<div class="sep"></div><a href="#/staff" class="${cur==='staff'?'active':''}">${ic('lock')} เข้าสู่ระบบ (สำหรับเจ้าหน้าที่)</a>`;
   const logo = S.pub && S.pub.settings.logoUrl;
   $('#brandLogo').innerHTML = logo ? `<img src="${esc(logo)}" alt="โลโก้">` : capSvg(42);
-  $('#favicon').href = logo || ('data:image/svg+xml,' + encodeURIComponent(capSvg(64).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ')));
+  if(logo) $('#favicon').href = logo;
   const chip = $('#staffChip');
   if(S.staff){ chip.innerHTML = ic('user',16) + ' ' + esc(S.staff.displayName); chip.classList.add('on'); } else chip.classList.remove('on');
   const fb = fbUrl('brandFacebook') || fbUrl('facebookPage');
