@@ -23,8 +23,12 @@
 <meta name="theme-color" content="#1F6B4F">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<!-- โหลดฟอนต์แบบไม่ขวางหน้าเว็บ: หน้าเว็บและการขอข้อมูลเริ่มได้ทันที ไม่ต้องรอไฟล์ฟอนต์ -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700&amp;family=Sarabun:wght@400;500;600;700&amp;display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700&amp;family=Sarabun:wght@400;500;600;700&amp;display=swap"></noscript>
+<!-- เปิดการเชื่อมต่อกับระบบหลังบ้าน (Google Apps Script) ไว้ล่วงหน้า -->
+<link rel="preconnect" href="https://script.google.com" crossorigin>
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <style>
 :root{
   /* Design specs: อยู่ดีมีแต้ม (ผสมโทนจากต้นแบบ Canva) */
@@ -363,6 +367,7 @@ a:focus-visible,button:focus-visible,.btn:focus-visible,.tab:focus-visible,.meth
 const API_URL = 'https://script.google.com/macros/s/AKfycbwVSoPA1iyRfRX1KdIjylG5rqAZoJ6t82A0Kac3Q930vsq2FoBiksU12UST2elOS_qD/exec';
 
 const DEMO = !API_URL;
+const MOCK_DELAY = (d => d === null ? 250 : Math.max(0, Number(d) || 0))(new URLSearchParams(location.search).get('delay')); // โหมดทดลอง: จำลองเวลารอ (?delay=มิลลิวินาที)
 const CAT = { household:'สินค้าจำเป็นในครัวเรือน', local:'สินค้าและบริการในตลิ่งชัน', green:'สินค้ากรีนและอัปไซเคิล' };
 const STATUS = {
   pending:['รอดำเนินการ','#FFF4D6','#7A4B00'],
@@ -386,8 +391,26 @@ const NAV = [
 function load(k){ try{ return localStorage.getItem(k) || ''; }catch(e){ return ''; } }
 function save(k,v){ try{ v ? localStorage.setItem(k,v) : localStorage.removeItem(k); }catch(e){} }
 function loadJSON(k){ try{ return JSON.parse(load(k) || 'null'); }catch(e){ return null; } }
+function saveJSON(k,v){ save(k, v == null ? '' : JSON.stringify(v)); }
 
-const S = { pub:null, mtoken:load('yd_mtoken'), stoken:load('yd_stoken'), staff:loadJSON('yd_staff') };
+/* ข้อมูลที่จำไว้ในเครื่อง แยกตามระบบหลังบ้าน (ทดลอง/จริง) จะได้ไม่ปนกัน */
+const KEY_SUFFIX = DEMO ? 'demo' : API_URL.replace(/[^A-Za-z0-9]/g, '').slice(-10);
+const PUB_KEY = 'yd_pub_' + KEY_SUFFIX, ME_KEY = 'yd_me_' + KEY_SUFFIX;
+/* ค่าเริ่มต้นตอนเปิดเว็บครั้งแรก ใช้แสดงส่วนที่ไม่ต้องรอข้อมูลได้ทันที */
+const DEFAULT_PUB = () => ({
+  settings:{ siteName:'อยู่ดีมีแต้ม', logoUrl:'', facebookPage:'', email:'YoodeeMeetaem@gmail.com', dataController:'สุธินี ศรีนอก',
+    dataControllerAddress:'40 ถนนจรัญสนิทวงศ์ ซอย 73 แขวงบางพลัด เขตบางพลัด กรุงเทพมหานคร 10700',
+    brandFacebook:'https://www.facebook.com/yoodeemeetaem/', brandLine:'https://lin.ee/q4KuQkd', pointsPerBaht:'10', postMinPoints:'500' },
+  wasteTypes:[], rewards:[], dropoffs:[]
+});
+
+const S = {
+  pub:null, pubLoaded:false, pubReq:null, pubError:'', waitPubRoute:null,
+  mtoken:load('yd_mtoken'), me:null, meReq:null, meAt:0,
+  stoken:load('yd_stoken'), staff:loadJSON('yd_staff'), sb:null, sbReq:null, sbAt:0, sbKeyAt:{}, sbUnsupported:false, upUnsupported:false,
+  touched:false, homeIds:null
+};
+if(S.mtoken) S.me = loadJSON(ME_KEY);
 
 /* ---------- helpers ---------- */
 const $ = (s, el=document) => el.querySelector(s);
@@ -395,8 +418,13 @@ const $$ = (s, el=document) => [...el.querySelectorAll(s)];
 function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function n(v){ return Number(v || 0).toLocaleString('th-TH', {maximumFractionDigits:2}); }
 function dt(s){ const d = new Date(s); return isNaN(d) ? '' : d.toLocaleString('th-TH', {dateStyle:'medium', timeStyle:'short'}); }
-function view(html){ $('#app').innerHTML = html; }
+function view(html){ $('#app').innerHTML = html; S.touched = false; }
+function skel(h=120){ return `<div class="skeleton" style="height:${h}px"></div>`; }
+function skelCards(k=3){ return Array.from({length:k}, () => skel(300)).join(''); }
 function shuffle(a){ a = a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+/* ผู้ใช้กำลังพิมพ์หรือแก้ฟอร์มอยู่ไหม (ถ้าใช่ จะไม่วาดหน้าใหม่ทับ) */
+document.addEventListener('input', e => { if(e.target.closest && e.target.closest('#app')) S.touched = true; }, true);
+function formBusy(){ const a = document.activeElement; return S.touched || !!(a && a.closest && a.closest('#app') && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); }
 let toastT;
 function toast(msg, isErr){ const t=$('#toast'); t.textContent=msg; t.className='show'+(isErr?' err':''); clearTimeout(toastT); toastT=setTimeout(()=>t.className='', 3200); }
 async function busy(btn, fn){
@@ -407,6 +435,7 @@ async function busy(btn, fn){
 }
 function fbUrl(k){ return (S.pub && S.pub.settings[k]) || ''; }
 function link(text, url, bold){ const t = bold ? `<b>${esc(text)}</b>` : esc(text); return url ? `<a href="${esc(url)}" target="_blank" rel="noopener">${t}</a>` : t; }
+function loadScript(src){ return new Promise((res,rej) => { const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('โหลดไฟล์เสริมไม่ได้')); document.head.appendChild(s); }); }
 
 /* ---------- icons ---------- */
 function capSvg(size=44, ring='#1F6B4F', fill='#E7F3EC'){
@@ -440,11 +469,24 @@ function rewardArt(cat){
  *  API
  * ========================================================= */
 async function api(action, payload={}, token=''){
-  if(DEMO){ await new Promise(r=>setTimeout(r,250)); return mockApi(action, JSON.parse(JSON.stringify(payload)), token); }
+  const t0 = performance.now();
+  let data;
+  if(DEMO){
+    await new Promise(r=>setTimeout(r, MOCK_DELAY));
+    try{ data = mockApi(action, JSON.parse(JSON.stringify(payload)), token); }
+    catch(e){
+      console.info(`[api] ${action} ${Math.round(performance.now()-t0)}ms (ทดลอง) ผิดพลาด: ${e.message}`);
+      if(e.code === 'AUTH') onAuthExpired(action);
+      throw e;
+    }
+    console.info(`[api] ${action} ${Math.round(performance.now()-t0)}ms (ทดลอง)`);
+    return JSON.parse(JSON.stringify(data ?? null));   // ส่งสำเนา เหมือนข้อมูลที่ได้จากระบบจริง
+  }
   let res;
   try{ res = await fetch(API_URL, { method:'POST', body: JSON.stringify({ action, payload, token }) }); }
   catch(e){ throw new Error('เชื่อมต่อระบบไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'); }
   let j; try{ j = await res.json(); }catch(e){ throw new Error('ระบบตอบกลับไม่ถูกต้อง'); }
+  console.info(`[api] ${action} ${Math.round(performance.now()-t0)}ms` + (j.ms !== undefined ? ` (หลังบ้าน ${j.ms}ms)` : ''));
   if(!j.ok){
     if(j.code === 'AUTH') onAuthExpired(action);
     throw new Error(j.error || 'เกิดข้อผิดพลาด');
@@ -452,9 +494,59 @@ async function api(action, payload={}, token=''){
   return j.data;
 }
 function onAuthExpired(action){
-  if(/^(staff|admin)/.test(action)){ S.stoken=''; S.staff=null; save('yd_stoken',''); save('yd_staff',''); }
-  else { S.mtoken=''; save('yd_mtoken',''); }
+  if(/^(staff|admin)/.test(action)) clearStaff();
+  else clearMember();
   setTimeout(route, 50);
+}
+function clearMember(){ S.mtoken=''; S.me=null; save('yd_mtoken',''); save(ME_KEY,''); }
+function clearStaff(){ S.stoken=''; S.staff=null; S.sb=null; S.sbAt=0; S.sbKeyAt={}; save('yd_stoken',''); save('yd_staff',''); }
+const isUnknownAction = e => /ไม่รู้จักคำสั่ง/.test(e && e.message || '');
+
+/* ---------- ข้อมูลสาธารณะ: แสดงจากที่จำไว้ทันที แล้วอัปเดตเบื้องหลัง ---------- */
+const PUB_PAGES = ['', 'earn', 'rewards', 'dropoff', 'contact', 'privacy'];
+function refreshPublic(){
+  if(S.pubReq) return S.pubReq;
+  S.pubReq = (async () => {
+    try{
+      const d = await api('publicData');
+      const changed = JSON.stringify(d) !== JSON.stringify(S.pub), wasLoaded = S.pubLoaded;
+      S.pub = d; S.pubLoaded = true; S.pubError = ''; saveJSON(PUB_KEY, d);
+      if(changed || !wasLoaded){
+        renderShell();
+        const r = curRoute();
+        if(S.waitPubRoute === r && !formBusy()) rerender();
+        else if(changed && PUB_PAGES.includes(r) && !formBusy()) rerender();
+      }
+      S.waitPubRoute = null;
+      return d;
+    }catch(e){
+      if(!S.pubLoaded){ S.pubError = e.message; if(S.waitPubRoute === curRoute()) rerender(); }
+      throw e;
+    }finally{ S.pubReq = null; }
+  })();
+  return S.pubReq;
+}
+function whenPub(){ return S.pubLoaded ? Promise.resolve(S.pub) : refreshPublic(); }
+/* หน้าที่ต้องใช้ข้อมูลแต่ยังไม่มี: แสดงโครงไว้ก่อน แล้ววาดใหม่เมื่อข้อมูลมาถึง */
+function waitPub(){
+  S.waitPubRoute = curRoute();
+  if(S.pubError) return `<div class="notice err">โหลดข้อมูลไม่ได้: ${esc(S.pubError)} <button class="btn btn-soft btn-sm" id="retryPub" style="margin-left:6px">ลองใหม่</button></div>`;
+  return '';
+}
+document.addEventListener('click', e => {
+  if(e.target.closest && e.target.closest('#retryPub')){ S.pubError = ''; rerender(); refreshPublic().catch(()=>{}); }
+});
+
+/* ---------- ข้อมูลสมาชิก: จำไว้ในเครื่อง เปิดหน้าได้ทันที ---------- */
+function setMe(d){ S.me = d; S.meAt = Date.now(); saveJSON(ME_KEY, d); }
+/* ข้อมูลสมาชิกเพิ่งได้จากระบบไม่เกิน 10 วินาที (เช่น เพิ่งเข้าสู่ระบบหรือเพิ่งแลกของ) ไม่ต้องขอซ้ำ */
+function meFresh(){ return !!S.me && Date.now() - S.meAt < 10000; }
+function refreshMe(){
+  if(!S.mtoken) return Promise.reject(new Error('กรุณาเข้าสู่ระบบ'));
+  if(S.meReq) return S.meReq;
+  const tok = S.mtoken;
+  S.meReq = api('memberMe', {}, tok).then(d => { if(S.mtoken === tok) setMe(d); return d; }).finally(() => { S.meReq = null; });
+  return S.meReq;
 }
 
 /* =========================================================
@@ -489,11 +581,14 @@ function qp(k){ return new URLSearchParams(location.hash.split('?')[1] || '').ge
 function curRoute(){ return location.hash.replace(/^#\/?/, '').split('?')[0]; }
 function route(){
   closeMenu(); stopScanner();
+  S.waitPubRoute = null;
   const r = curRoute();
   renderShell();
   (ROUTES[r] || pageHome)();
   window.scrollTo(0,0);
 }
+/* วาดหน้าปัจจุบันใหม่ด้วยข้อมูลล่าสุด โดยไม่เลื่อนจอ */
+function rerender(){ renderShell(); (ROUTES[curRoute()] || pageHome)(); }
 window.addEventListener('hashchange', route);
 
 /* =========================================================
@@ -513,8 +608,17 @@ function rewardCard(r){
       : `<a class="btn btn-amber btn-block" style="margin-top:8px" href="#/redeem?id=${encodeURIComponent(r.id)}">${ic('gift',20)} แลกของรางวัล</a>`}
   </div></article>`;
 }
+function homePicks(){
+  const rs = S.pub.rewards;
+  if(!S.homeIds) S.homeIds = shuffle(rs.map(r => r.id));   // สุ่มครั้งเดียว ข้อมูลอัปเดตแล้วการ์ดไม่สลับที่
+  const picked = S.homeIds.map(id => rs.find(r => r.id === id)).filter(Boolean);
+  rs.forEach(r => { if(!picked.includes(r)) picked.push(r); });
+  return picked.slice(0,3);
+}
 function pageHome(){
-  const picks = shuffle(S.pub.rewards).slice(0,3);
+  const grid = S.pubLoaded
+    ? (homePicks().map(r => rewardCard(r)).join('') || '<p class="muted">ยังไม่มีรายการของรางวัล</p>')
+    : (waitPub() || skelCards(3));
   view(`
   <section class="hero">
     <div class="hero-deco">${capSvg(220,'#D6EBDF','#EEF6F1')}</div>
@@ -531,7 +635,7 @@ function pageHome(){
 
   <section>
     <div class="sec-head"><h2>ของรางวัลที่แลกได้</h2><a href="#/rewards" class="kanit">ดูทั้งหมด →</a></div>
-    <div class="grid3">${picks.map(r => rewardCard(r)).join('') || '<p class="muted">ยังไม่มีรายการของรางวัล</p>'}</div>
+    <div class="grid3">${grid}</div>
   </section>`);
 }
 
@@ -540,6 +644,9 @@ function pageHome(){
  * ========================================================= */
 function pageEarn(){
   const types = S.pub.wasteTypes;
+  const rates = S.pubLoaded
+    ? (types.map(t => `<div class="rate"><div><div class="nm">${esc(t.name)}</div><div class="ds">${esc(t.description)}</div></div><span class="pts"><b>${n(t.pointsPerUnit)}</b> แต้ม/${esc(t.unit)}</span></div>`).join('') || '<p class="muted">ยังไม่มีข้อมูล</p>')
+    : (waitPub() || skel(220));
   view(`
   <section><h1>แลกขยะสะสมแต้ม</h1><p class="muted" style="margin:0">นำขยะมาที่จุดรับ เจ้าหน้าที่ชั่งและบันทึกแต้มให้ทันที แต้มไม่มีวันหมดอายุ</p></section>
   <section class="steps">
@@ -550,7 +657,7 @@ function pageEarn(){
   </section>
   <section class="card">
     <h2>ขยะที่รับ และอัตราแต้ม</h2>
-    ${types.map(t => `<div class="rate"><div><div class="nm">${esc(t.name)}</div><div class="ds">${esc(t.description)}</div></div><span class="pts"><b>${n(t.pointsPerUnit)}</b> แต้ม/${esc(t.unit)}</span></div>`).join('') || '<p class="muted">ยังไม่มีข้อมูล</p>'}
+    ${rates}
   </section>
   <section class="grid2">
     <a class="btn btn-primary btn-lg" href="#/member">${ic('qr')} ${S.mtoken ? 'เปิดบัตรสมาชิกของฉัน' : 'สมัครสมาชิก / เข้าสู่ระบบ'}</a>
@@ -565,13 +672,14 @@ let rewardFilter = 'all';
 function pageRewards(){
   const all = S.pub.rewards;
   const list = rewardFilter === 'all' ? all : all.filter(r => r.category === rewardFilter);
+  const grid = S.pubLoaded ? (list.map(r => rewardCard(r)).join('') || '<p class="muted">ยังไม่มีรายการในหมวดนี้</p>') : (waitPub() || skelCards(3));
   view(`
   <section><h1>แลกของรางวัล</h1><p class="muted" style="margin:0">นำแต้มสะสมมาแลกของรางวัล สิทธิประโยชน์ หรือส่วนลดจากร้านค้าในชุมชน จัดส่งฟรี</p></section>
   <div class="chips" id="chips">
     <button data-c="all" class="${rewardFilter==='all'?'on':''}">ทั้งหมด</button>
     ${Object.keys(CAT).map(k => `<button data-c="${k}" class="${rewardFilter===k?'on':''}">${CAT[k]}</button>`).join('')}
   </div>
-  <div class="grid3">${list.map(r => rewardCard(r)).join('') || '<p class="muted">ยังไม่มีรายการในหมวดนี้</p>'}</div>`);
+  <div class="grid3">${grid}</div>`);
   $$('#chips button').forEach(b => b.onclick = () => { rewardFilter = b.dataset.c; pageRewards(); });
 }
 
@@ -580,9 +688,7 @@ function pageRewards(){
  * ========================================================= */
 function pageDropoff(){
   const ds = S.pub.dropoffs;
-  view(`
-  <section><h1>จุดรับขยะ (Drop-off)</h1><p class="muted" style="margin:0">นำขยะที่แยกแล้วมาส่งได้ที่จุดเหล่านี้ แผนที่แบบโต้ตอบจะเพิ่มในรอบถัดไป</p></section>
-  <div class="grid2">${ds.map(d => {
+  const cards = S.pubLoaded ? (ds.map(d => {
     const q = d.lat && d.lng ? `${d.lat},${d.lng}` : d.address;
     return `<div class="card">
       <h3>${ic('pin',20)} ${esc(d.name)}</h3>
@@ -590,7 +696,10 @@ function pageDropoff(){
       ${d.openHours ? `<p class="small muted" style="margin:.2em 0">เวลาเปิดรับ: ${esc(d.openHours)}</p>` : ''}
       ${d.acceptedTypes ? `<p class="small muted" style="margin:.2em 0 .8em">รับ: ${esc(d.acceptedTypes)}</p>` : ''}
       <a class="btn btn-soft btn-block" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}">เปิดใน Google Maps</a>
-    </div>`; }).join('') || '<p class="muted">ยังไม่มีจุดรับขยะ</p>'}</div>`);
+    </div>`; }).join('') || '<p class="muted">ยังไม่มีจุดรับขยะ</p>') : (waitPub() || skel(200));
+  view(`
+  <section><h1>จุดรับขยะ (Drop-off)</h1><p class="muted" style="margin:0">นำขยะที่แยกแล้วมาส่งได้ที่จุดเหล่านี้ แผนที่แบบโต้ตอบจะเพิ่มในรอบถัดไป</p></section>
+  <div class="grid2">${cards}</div>`);
 }
 
 /* =========================================================
@@ -717,15 +826,34 @@ function pageMember(){
   }
 }
 
+/* เข้าสู่ระบบ/สมัครสำเร็จ: หลังบ้านส่งข้อมูลหน้าสมาชิกมาพร้อมกันแล้ว ไม่ต้องขอซ้ำ */
 function afterAuth(d, msg){
-  S.mtoken = d.token; save('yd_mtoken', d.token); toast(msg);
+  S.mtoken = d.token; save('yd_mtoken', d.token);
+  if(Array.isArray(d.history)) setMe({ member:d.member, history:d.history, redemptions:d.redemptions || [], lastShipping:d.lastShipping || null });
+  else { S.me = null; save(ME_KEY, ''); }   // หลังบ้านรุ่นเก่า: หน้าสมาชิกจะขอข้อมูลเอง
+  toast(msg);
   if(S.afterLogin){ const t = S.afterLogin; S.afterLogin = ''; location.hash = t; } else memberHome();
 }
 async function memberHome(){
-  view('<div class="skeleton" style="max-width:520px"></div>');
+  if(S.me){
+    const fresh = meFresh();
+    renderMember(S.me, !fresh);
+    if(fresh) return;
+    const before = JSON.stringify(S.me);
+    refreshMe().then(d => {
+      if(curRoute() !== 'member' || !S.mtoken) return;
+      if(JSON.stringify(d) !== before) renderMember(d, false);
+      else { const s = $('#meSync'); if(s) s.remove(); }
+    }).catch(() => { const s = $('#meSync'); if(s) s.textContent = 'อัปเดตข้อมูลล่าสุดไม่ได้ แสดงข้อมูลที่บันทึกไว้'; });
+    return;
+  }
+  view(skel(260) + '<div style="height:14px"></div>' + skel(160));
   let d;
-  try{ d = await api('memberMe', {}, S.mtoken); }
-  catch(e){ if(!S.mtoken) return pageMember(); view(`<div class="notice err">${esc(e.message)}</div>`); return; }
+  try{ d = await refreshMe(); }
+  catch(e){ if(!S.mtoken) return pageMember(); if(curRoute() === 'member') view(`<div class="notice err">${esc(e.message)}</div>`); return; }
+  if(curRoute() === 'member' && S.mtoken) renderMember(d, false);
+}
+function renderMember(d, syncing){
   const m = d.member;
   const earnCount = d.history.filter(h => h.type === 'earn').length;
   view(`
@@ -739,6 +867,7 @@ async function memberHome(){
     </div>
     <div class="mc-foot">แสดงบัตรนี้ให้เจ้าหน้าที่ที่จุดรับขยะ · แต้มไม่มีวันหมดอายุ</div>
   </section>
+  ${syncing ? '<p class="hint no-print" id="meSync" style="margin:-12px 0 14px">กำลังอัปเดตข้อมูลล่าสุด...</p>' : ''}
   <section class="stats no-print">
     <div class="stat"><div class="v">${n(m.totalKg)}</div><div class="k">กิโลกรัมที่ส่งแล้ว</div></div>
     <div class="stat"><div class="v">${n(earnCount)}</div><div class="k">ครั้งที่นำขยะมาส่ง</div></div>
@@ -758,11 +887,22 @@ async function memberHome(){
     <button class="btn btn-ghost btn-lg" id="logoutBtn">ออกจากระบบ</button>
   </section>`);
   drawQR($('#qr'), m.memberId);
-  $('#logoutBtn').onclick = async () => { try{ await api('logout', {}, S.mtoken); }catch(e){} S.mtoken=''; save('yd_mtoken',''); memberTab='login'; pageMember(); };
+  $('#logoutBtn').onclick = () => {
+    const tok = S.mtoken;
+    api('logout', {}, tok).catch(()=>{});   // ไม่ต้องรอผล
+    clearMember(); memberTab = 'login'; pageMember();
+  };
 }
-function drawQR(el, text){
-  if(window.QRCode){ new QRCode(el, { text, width:132, height:132, colorDark:'#13463A', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.M }); }
-  else el.textContent = text;
+/* โหลดตัวสร้าง QR เฉพาะตอนต้องใช้ หน้าอื่นจะได้ไม่ต้องรอ */
+let qrLib = null;
+function loadQR(){ return qrLib || (qrLib = loadScript('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js').catch(e => { qrLib = null; throw e; })); }
+async function drawQR(el, text){
+  if(!el) return;
+  el.textContent = text;
+  try{ if(!window.QRCode) await loadQR(); }catch(e){ return; }
+  if(!el.isConnected || !window.QRCode) return;
+  el.textContent = '';
+  new QRCode(el, { text, width:132, height:132, colorDark:'#13463A', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.M });
 }
 
 /* =========================================================
@@ -775,28 +915,46 @@ function rewardSummary(r){
   setTimeout(() => $$('.gallery button').forEach(b => b.onclick = () => { $('#gMain').src = b.dataset.u; $$('.gallery button').forEach(x => x.classList.toggle('on', x === b)); }), 0);
   return `${gallery}<div class="card rsum">${rewardImg(r)}<div><span class="chip">${esc(CAT[r.category] || r.category)}</span><div class="reward-name" style="margin:4px 0">${esc(r.name)}</div>${r.description ? `<div class="small muted" style="margin-bottom:6px">${esc(r.description)}</div>` : ''}${r.sponsor ? `<div class="small muted" style="margin-bottom:6px">สนับสนุนโดย <b>${esc(r.sponsor)}</b></div>` : ''}<span class="pts"><b>${n(r.points)}</b> แต้ม</span></div></div>`;
 }
+const redeemWrap = html => view(`<section style="max-width:560px;margin:0 auto"><h1>แลกของรางวัล</h1>${html}</section>`);
 async function pageRedeem(){
-  const r = S.pub.rewards.find(x => x.id === qp('id'));
-  const wrap = html => view(`<section style="max-width:560px;margin:0 auto"><h1>แลกของรางวัล</h1>${html}</section>`);
-  if(!r){ wrap(`<div class="notice err">ไม่พบของรางวัลนี้ หรือปิดการแลกแล้ว</div><a class="btn btn-soft btn-block" style="margin-top:14px" href="#/rewards">กลับไปหน้าของรางวัล</a>`); return; }
+  if(!S.pubLoaded){ redeemWrap(waitPub() || skel(140) + '<div style="height:14px"></div>' + skel(220)); return; }
+  const id = qp('id');
+  const r = S.pub.rewards.find(x => x.id === id);
+  if(!r){ redeemWrap(`<div class="notice err">ไม่พบของรางวัลนี้ หรือปิดการแลกแล้ว</div><a class="btn btn-soft btn-block" style="margin-top:14px" href="#/rewards">กลับไปหน้าของรางวัล</a>`); return; }
   if(!S.mtoken){
     S.afterLogin = location.hash;
-    wrap(`${rewardSummary(r)}<div class="notice" style="margin-top:14px">กรุณาเข้าสู่ระบบหรือสมัครสมาชิกก่อนแลกของรางวัล ระบบจะพากลับมาหน้านี้ให้</div>
+    redeemWrap(`${rewardSummary(r)}<div class="notice" style="margin-top:14px">กรุณาเข้าสู่ระบบหรือสมัครสมาชิกก่อนแลกของรางวัล ระบบจะพากลับมาหน้านี้ให้</div>
       <a class="btn btn-primary btn-lg btn-block" href="#/member" style="margin-top:14px">เข้าสู่ระบบ / สมัครสมาชิก</a>`);
     return;
   }
-  wrap('<div class="skeleton"></div>');
-  let d;
-  try{ d = await api('memberMe', {}, S.mtoken); }
-  catch(e){ if(!S.mtoken) return; wrap(`<div class="notice err">${esc(e.message)}</div>`); return; }
-  const m = d.member, ls = d.lastShipping || {}, after = m.points - r.points, enough = after >= 0;
+  if(!S.me){
+    redeemWrap(rewardSummary(r) + '<div style="height:14px"></div>' + skel(160));
+    try{ await refreshMe(); }
+    catch(e){ if(!S.mtoken) return; if(curRoute() === 'redeem') redeemWrap(`<div class="notice err">${esc(e.message)}</div>`); return; }
+    if(curRoute() !== 'redeem' || qp('id') !== id) return;
+    renderRedeem(r, S.me);
+    return;
+  }
+  // แสดงจากข้อมูลที่จำไว้ทันที แล้วเช็กแต้มล่าสุดเบื้องหลัง (ถ้าแต้มดูเหมือนไม่พอ เช็กเสมอ เผื่อเพิ่งได้แต้มเพิ่ม)
+  renderRedeem(r, S.me);
+  if(meFresh() && S.me.member.points >= r.points) return;
+  const pts0 = S.me.member.points;
+  refreshMe().then(d => {
+    if(curRoute() !== 'redeem' || qp('id') !== id || d.member.points === pts0) return;
+    const enough0 = pts0 - r.points >= 0, enough1 = d.member.points - r.points >= 0;
+    if(enough0 !== enough1 && !formBusy()) renderRedeem(r, d);
+    else { const a = $('#balMine'), b = $('#balAfter'); if(a) a.textContent = n(d.member.points); if(b && enough1) b.textContent = n(d.member.points - r.points); }
+  }).catch(()=>{});
+}
+function renderRedeem(r, me){
+  const m = me.member, ls = me.lastShipping || {}, after = m.points - r.points, enough = after >= 0;
   const balance = `<div class="card" style="margin-top:14px">
-      <div class="bal"><span>แต้มของคุณ</span><b>${n(m.points)}</b></div>
+      <div class="bal"><span>แต้มของคุณ</span><b id="balMine">${n(m.points)}</b></div>
       <div class="bal"><span>ใช้แลก</span><b class="minus">−${n(r.points)}</b></div>
-      <div class="bal last"><span>คงเหลือหลังแลก</span><b>${enough ? n(after) : '—'}</b></div></div>`;
-  if(isOut(r)){ wrap(`${rewardSummary(r)}<div class="notice err" style="margin-top:14px">ของรางวัลนี้หมดแล้ว</div><a class="btn btn-soft btn-block" style="margin-top:14px" href="#/rewards">ดูของรางวัลอื่น</a>`); return; }
+      <div class="bal last"><span>คงเหลือหลังแลก</span><b id="balAfter">${enough ? n(after) : '—'}</b></div></div>`;
+  if(isOut(r)){ redeemWrap(`${rewardSummary(r)}<div class="notice err" style="margin-top:14px">ของรางวัลนี้หมดแล้ว</div><a class="btn btn-soft btn-block" style="margin-top:14px" href="#/rewards">ดูของรางวัลอื่น</a>`); return; }
   if(!enough){
-    wrap(`${rewardSummary(r)}${balance}<div class="notice amber" style="margin-top:14px">ยังขาดอีก <b>${n(-after)}</b> แต้ม นำขยะไปที่จุดรับเพื่อสะสมเพิ่ม</div>
+    redeemWrap(`${rewardSummary(r)}${balance}<div class="notice amber" style="margin-top:14px">ยังขาดอีก <b>${n(-after)}</b> แต้ม นำขยะไปที่จุดรับเพื่อสะสมเพิ่ม</div>
       <div class="grid2" style="margin-top:14px"><a class="btn btn-primary btn-lg" href="#/earn">วิธีสะสมแต้ม</a><a class="btn btn-soft btn-lg" href="#/rewards">ดูของรางวัลอื่น</a></div>`);
     return;
   }
@@ -808,7 +966,7 @@ async function pageRedeem(){
     ['volunteer', 'อาสาสมัครส่งถึงบ้าน', 'ฟรี · เฉพาะในเขตตลิ่งชัน รวบรอบส่งเดือนละครั้ง', true],
     ['post', 'ส่งทางขนส่ง', canPost ? 'ฟรี · ส่งถึงบ้านทั่วประเทศ' : `สำหรับของรางวัลตั้งแต่ ${n(postMin)} แต้มขึ้นไป`, canPost]
   ];
-  wrap(`${rewardSummary(r)}${balance}
+  redeemWrap(`${rewardSummary(r)}${balance}
     <div class="card" style="margin-top:14px">
     ${isCoupon ? `
       <h2>รับเป็นคูปอง</h2>
@@ -835,11 +993,11 @@ async function pageRedeem(){
       const method = curMethod();
       const payload = isCoupon ? { rewardId:r.id } : { rewardId:r.id, method, dropoffId:$('#dpk') ? $('#dpk').value : '', recipientName:$('#dn').value, phone:$('#dp2').value, address:$('#da').value, otherContact:$('#do').value };
       const res = await api('memberRedeem', payload, S.mtoken);
-      refreshPublic().catch(()=>{});
+      afterRedeem(r, payload, res);
       const how = res.method === 'coupon'
         ? `<p style="margin:.6em 0 0">รหัสคูปองของคุณ</p><div class="coupon">${esc(res.redeemId)}</div><p class="small muted" style="margin:0">แสดงรหัสนี้ที่ร้านเพื่อใช้สิทธิ์</p>`
         : `<p class="muted" style="margin:.2em 0">เลขที่คำขอ <b>${esc(res.redeemId)}</b> · ${esc(METHOD[res.method])}${res.method === 'pickup' ? ' (' + esc(dropName(payload.dropoffId)) + ')' : ''}</p><p class="small muted">ติดตามสถานะได้ที่หน้าข้อมูลสมาชิก</p>`;
-      wrap(`<div class="card success">
+      redeemWrap(`<div class="card success">
         <div class="big">${ic('gift',56)}</div>
         <h2 style="margin:.4em 0 .2em">${res.method === 'coupon' ? 'แลกคูปองสำเร็จ' : 'ส่งคำขอแลกของแล้ว'}</h2>
         <p style="margin:0">${esc(res.rewardName)} · ใช้ ${n(res.points)} แต้ม · คงเหลือ ${n(res.balance)} แต้ม</p>
@@ -849,10 +1007,78 @@ async function pageRedeem(){
     });
   };
 }
+/* อัปเดตข้อมูลในเครื่องจากผลการแลก หน้าสมาชิกและหน้าของรางวัลจะแสดงค่าใหม่ทันทีโดยไม่ต้องขอซ้ำ */
+function afterRedeem(r, payload, res){
+  const now = new Date().toISOString();
+  if(S.me){
+    S.me.member.points = res.balance;
+    S.me.redemptions = [{ redeemId:res.redeemId, rewardId:r.id, rewardName:res.rewardName, points:res.points, status:'pending', statusNote:'', createdAt:now, updatedAt:now, method:res.method, dropoffId:payload.dropoffId || '' }].concat(S.me.redemptions || []);
+    S.me.history = [{ createdAt:now, type:'redeem', wasteName:'แลก: ' + res.rewardName, quantity:0, unit:'', points:-res.points, note:res.redeemId }].concat(S.me.history || []);
+    if(payload.address) S.me.lastShipping = { recipientName:payload.recipientName, phone:payload.phone, address:payload.address, otherContact:payload.otherContact || '' };
+    setMe(S.me);
+  }
+  if('stock' in res){
+    const pr = S.pub.rewards.find(x => x.id === r.id);
+    if(pr && res.stock !== '') { pr.stock = res.stock; saveJSON(PUB_KEY, S.pub); }
+  } else refreshPublic().catch(()=>{});   // หลังบ้านรุ่นเก่า
+}
 
 /* =========================================================
  *  เจ้าหน้าที่ / แอดมิน
+ *  โหลดข้อมูลทุกแท็บในคำขอเดียว (staffBootstrap) สลับแท็บได้ทันที
  * ========================================================= */
+function loadStaffData(){
+  if(!S.stoken) return Promise.resolve(null);
+  if(S.sbUnsupported) return Promise.resolve(null);
+  if(S.sbReq) return S.sbReq;
+  const tok = S.stoken;
+  S.sbReq = api('staffBootstrap', {}, tok).then(d => {
+    if(S.stoken !== tok) return null;
+    const roleBefore = S.staff && S.staff.role;
+    S.sb = Object.assign(S.sb || {}, d); S.sbAt = Date.now();
+    if(d.staff){ S.staff = d.staff; save('yd_staff', JSON.stringify(d.staff)); }
+    if(d.staff && roleBefore && d.staff.role !== roleBefore && curRoute() === 'staff' && !formBusy()) { renderShell(); pageStaff(); }
+    return S.sb;
+  }).catch(e => { if(isUnknownAction(e)){ S.sbUnsupported = true; return null; } throw e; })
+    .finally(() => { S.sbReq = null; });
+  return S.sbReq;
+}
+/* ข้อมูลของแท็บ: ใช้ที่มีอยู่ ถ้ายังไม่มี รอ bootstrap หรือ (หลังบ้านรุ่นเก่า) ขอเฉพาะแท็บนั้น */
+async function sbGet(key, action, payload){
+  if(S.sb && S.sb[key] !== undefined) return S.sb[key];
+  const d = await loadStaffData();
+  if(d && d[key] !== undefined) return d[key];
+  const v = await api(action, payload || {}, S.stoken);
+  S.sb = S.sb || {}; S.sb[key] = v; S.sbKeyAt[key] = Date.now();
+  return v;
+}
+/* ข้อมูลเก่ากว่า 30 วินาที: ขอใหม่เบื้องหลัง แล้ววาดแท็บนี้ใหม่ถ้ายังไม่ได้แก้อะไรอยู่ */
+const TAB_SRC = { record:['recent','staffRecent'], summary:['summary','adminSummary'], redeems:['redemptions','adminRedemptions',{ status:'' }], rewards:['rewards','adminRewards'],
+  types:['wasteTypes','adminWasteTypes'], members:['members','adminMembers',{ q:'' }], staffs:['staffList','adminStaff'], settings:['settings','adminSettings'] };
+function redrawTab(tab){
+  if(curRoute() !== 'staff' || staffTab !== tab) return;
+  if(tab === 'record') drawRecent(S.sb.recent || []);   // วาดเฉพาะรายการล่าสุด ไม่กระทบฟอร์มที่กรอกอยู่
+  else if(!formBusy()) renderTab();
+}
+function maybeRefreshStaff(tab){
+  if(S.sbUnsupported){
+    // หลังบ้านรุ่นเก่า (ยังไม่มี staffBootstrap): ขอข้อมูลของแท็บนี้ใหม่เบื้องหลัง
+    const src = TAB_SRC[tab], key = src && src[0];
+    if(!src || Date.now() - (S.sbKeyAt[key] || 0) < 30000) return;
+    S.sbKeyAt[key] = Date.now();
+    api(src[1], src[2] || {}, S.stoken).then(v => {
+      S.sb = S.sb || {};
+      const changed = JSON.stringify(S.sb[key]) !== JSON.stringify(v);
+      S.sb[key] = v;
+      if(changed) redrawTab(tab);
+    }).catch(()=>{});
+    return;
+  }
+  if(S.sbReq || Date.now() - S.sbAt < 30000) return;
+  loadStaffData().then(d => { if(d) redrawTab(tab); }).catch(()=>{});
+}
+function staleStaff(){ S.sbAt = 0; S.sbKeyAt = {}; }
+
 let staffTab = 'record';
 function pageStaff(){
   if(!S.stoken || !S.staff){
@@ -867,11 +1093,13 @@ function pageStaff(){
     </section>`);
     $('#sBtn').onclick = e => busy(e.currentTarget, async () => {
       const d = await api('staffLogin', { username: $('#su').value, password: $('#sp').value });
-      S.stoken = d.token; S.staff = d.staff; save('yd_stoken', d.token); save('yd_staff', JSON.stringify(d.staff));
+      S.stoken = d.token; S.staff = d.staff; S.sb = null; S.sbAt = 0; S.sbKeyAt = {}; S.sbUnsupported = false; save('yd_stoken', d.token); save('yd_staff', JSON.stringify(d.staff));
+      loadStaffData().catch(()=>{});   // โหลดข้อมูลทุกแท็บล่วงหน้า
       staffTab = 'record'; renderShell(); pageStaff();
     });
     return;
   }
+  if(!S.sb && !S.sbReq) loadStaffData().catch(()=>{});
   const isAdmin = S.staff.role === 'admin';
   const tabs = [['record','บันทึกขยะ']].concat(isAdmin ? [['summary','ภาพรวม'],['redeems','คำขอแลกของ'],['rewards','ของรางวัล'],['types','ประเภทขยะ'],['members','สมาชิก'],['staffs','เจ้าหน้าที่'],['settings','ตั้งค่า']] : []);
   if(!tabs.some(t => t[0] === staffTab)) staffTab = 'record';
@@ -879,15 +1107,34 @@ function pageStaff(){
   <section class="sec-head"><h1 style="margin:0">${isAdmin ? 'ระบบหลังบ้าน' : 'จุดรับขยะ'}</h1><button class="btn btn-ghost btn-sm" id="sOut">ออกจากระบบ</button></section>
   <div class="tabs">${tabs.map(([k,t]) => `<button class="tab ${staffTab===k?'on':''}" data-t="${k}">${t}</button>`).join('')}</div>
   <div id="sBody"></div>`);
-  $$('.tab').forEach(b => b.onclick = () => { stopScanner(); staffTab = b.dataset.t; pageStaff(); });
-  $('#sOut').onclick = async () => { try{ await api('logout', {}, S.stoken); }catch(e){} S.stoken=''; S.staff=null; save('yd_stoken',''); save('yd_staff',''); renderShell(); pageStaff(); };
+  $$('.tab').forEach(b => b.onclick = () => {
+    stopScanner(); staffTab = b.dataset.t;
+    $$('.tab').forEach(x => x.classList.toggle('on', x === b));
+    S.touched = false; renderTab();
+  });
+  $('#sOut').onclick = () => { const tok = S.stoken; api('logout', {}, tok).catch(()=>{}); clearStaff(); renderShell(); pageStaff(); };
+  renderTab();
+}
+function renderTab(){
   ({ record:tabRecord, summary:tabSummary, redeems:tabRedeems, rewards:tabRewards, types:tabTypes, members:tabMembers, staffs:tabStaffs, settings:tabSettings })[staffTab]();
+}
+/* แสดงแท็บจากข้อมูลที่มี ถ้ายังไม่มีแสดงโครงไว้ก่อน */
+async function withTabData(tab, key, action, payload, draw){
+  const has = S.sb && S.sb[key] !== undefined;
+  if(!has) $('#sBody').innerHTML = skel(160);
+  let data;
+  try{ data = has ? S.sb[key] : await sbGet(key, action, payload); }
+  catch(e){ if(staffTab === tab && $('#sBody')) $('#sBody').innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
+  if(curRoute() !== 'staff' || staffTab !== tab || !$('#sBody')) return;
+  draw(data);
+  maybeRefreshStaff(tab);
 }
 
 /* ---------- บันทึกขยะ ---------- */
-const R = { member:null, lines:[], photo:'' };
+const R = { member:null, lines:[], photo:'', photoId:'', upload:null, prep:null };
+let photoSeq = 0;
 function tabRecord(){
-  R.member = null; R.lines = [{ wasteTypeId: (S.pub.wasteTypes[0]||{}).id || '', quantity:'' }]; R.photo = '';
+  R.member = null; R.lines = []; R.photo = ''; R.photoId = ''; R.upload = null; R.prep = null; photoSeq++;
   $('#sBody').innerHTML = `
   <div class="card">
     <h3>1. ค้นหาสมาชิก</h3>
@@ -902,19 +1149,51 @@ function tabRecord(){
   </div>
   <div id="step2"></div>
   <div class="card" style="margin-top:14px">
-    <h3>รายการที่บันทึกล่าสุด</h3><div id="recent"><div class="skeleton" style="height:60px"></div></div>
+    <h3>รายการที่บันทึกล่าสุด</h3><div id="recent">${skel(60)}</div>
   </div>`;
   $('#fBtn').onclick = e => busy(e.currentTarget, () => findMember($('#fq').value));
   $('#fq').onkeydown = e => { if(e.key === 'Enter') $('#fBtn').click(); };
   $('#scanBtn').onclick = startScanner;
   $('#newMemBtn').onclick = showNewMember;
-  loadRecent();
+  if(S.sb && S.sb.recent){ drawRecent(S.sb.recent); maybeRefreshStaff('record'); }
+  else sbGet('recent', 'staffRecent').then(rs => { if(staffTab === 'record') drawRecent(rs); })
+    .catch(e => { const el = $('#recent'); if(el) el.innerHTML = `<p class="muted">${esc(e.message)}</p>`; });
 }
 async function findMember(q){
-  const m = await api('staffFindMember', { query:q }, S.stoken);
+  const local = localMember(q);
+  if(local){
+    // แอดมินมีรายชื่อสมาชิกในเครื่องแล้ว แสดงทันที แล้วเช็กแต้มล่าสุดเบื้องหลัง
+    await showFound(local);
+    api('staffFindMember', { query:q }, S.stoken).then(m => {
+      if(!R.member || R.member.memberId !== m.memberId) return;
+      R.member = m; const b = $('#found .pts b'); if(b) b.textContent = n(m.points);
+    }).catch(()=>{});
+    return;
+  }
+  await showFound(await api('staffFindMember', { query:q }, S.stoken));
+}
+/* ค้นจากรายชื่อสมาชิกที่โหลดไว้ (เฉพาะแอดมิน) ใช้กติกาเดียวกับระบบหลังบ้าน */
+function localMember(q){
+  const list = S.sb && S.sb.members; if(!Array.isArray(list)) return null;
+  q = String(q || '').trim();
+  let m = null;
+  const id = q.match(/^yd-?(\d+)$/i);
+  if(id){ const mid = 'YD-' + String(Number(id[1])).padStart(4, '0'); m = list.find(x => x.memberId === mid); }
+  else {
+    let d = q.replace(/\D/g, '');
+    if(d.startsWith('66') && d.length === 11) d = '0' + d.slice(2);
+    if(/^0\d{8,9}$/.test(d)) m = list.find(x => String(x.phone) === d);
+  }
+  if(!m) return null;
+  const ph = String(m.phone || '');
+  return { memberId:m.memberId, name:m.name, phoneMasked: ph.length >= 4 ? ph.slice(0,3) + '-xxx-' + ph.slice(-4) : '', points:m.points, totalKg:m.totalKg };
+}
+async function showFound(m){
   R.member = m;
   $('#newMem').innerHTML = '';
   $('#found').innerHTML = `<div class="found"><div><div class="nm">${esc(m.name)}</div><div class="small muted">${esc(m.memberId)} · ${esc(m.phoneMasked)}</div></div><span class="pts"><b>${n(m.points)}</b> แต้ม</span></div>`;
+  await whenPub();
+  if(!R.lines.length) R.lines = [{ wasteTypeId: (S.pub.wasteTypes[0]||{}).id || '', quantity:'' }];
   renderStep2();
 }
 function showNewMember(){
@@ -928,12 +1207,14 @@ function showNewMember(){
   $('#nBtn').onclick = e => busy(e.currentTarget, async () => {
     const m = await api('staffRegister', { name:$('#nn').value, phone:$('#np').value, pin:$('#npin').value, consent:$('#nc').checked }, S.stoken);
     toast('สมัครสำเร็จ รหัส ' + m.memberId);
-    await findMember(m.memberId);
+    staleStaff();
+    await showFound(m);   // ข้อมูลสมาชิกใหม่มีครบแล้ว ไม่ต้องค้นซ้ำ
   });
 }
 function lineOptions(sel){ return S.pub.wasteTypes.map(t => `<option value="${esc(t.id)}" ${t.id===sel?'selected':''}>${esc(t.name)} (${n(t.pointsPerUnit)}/${esc(t.unit)})</option>`).join(''); }
 function rp(v){ return Math.round(Number(v)); }  // แต้มเป็นจำนวนเต็มเสมอ
 function linePoints(l){ const t = S.pub.wasteTypes.find(x => x.id === l.wasteTypeId); return t ? rp((Number(l.quantity)||0) * t.pointsPerUnit) : 0; }
+function setPhotoStatus(t){ const el = $('#pStat'); if(el) el.textContent = t; }
 function renderStep2(){
   const dps = S.pub.dropoffs;
   $('#step2').innerHTML = `
@@ -945,8 +1226,9 @@ function renderStep2(){
   </div>
   <div class="card" style="margin-top:14px">
     <h3>3. รูปยืนยัน</h3>
-    <label class="photo-drop" id="pDrop">${ic('camera',32)}<span>แตะเพื่อถ่ายรูปขยะบนตาชั่ง</span><span class="small muted">รูปจะถูกย่อขนาดอัตโนมัติก่อนส่ง</span><input type="file" id="pIn" accept="image/*" capture="environment"></label>
+    <label class="photo-drop" id="pDrop">${ic('camera',32)}<span>แตะเพื่อถ่ายรูปขยะบนตาชั่ง</span><span class="small muted">รูปจะถูกย่อขนาดและส่งขึ้นระบบทันทีที่ถ่าย</span><input type="file" id="pIn" accept="image/*" capture="environment"></label>
     <img id="pPrev" class="photo-prev" hidden alt="รูปยืนยัน">
+    <p class="hint" id="pStat" aria-live="polite"></p>
     <label class="f" for="dp">จุดรับขยะ</label>
     <select id="dp">${dps.map(d => `<option value="${esc(d.id)}">${esc(d.name)}</option>`).join('')}</select>
     <label class="f" for="nt">หมายเหตุ (ถ้ามี)</label><input id="nt">
@@ -954,10 +1236,28 @@ function renderStep2(){
   <button class="btn btn-primary btn-lg btn-block" id="saveRec" style="margin-top:14px">บันทึกและให้แต้ม</button>`;
   drawLines();
   $('#addLine').onclick = () => { R.lines.push({ wasteTypeId:(S.pub.wasteTypes[0]||{}).id||'', quantity:'' }); drawLines(); };
-  $('#pIn').onchange = async e => {
+  $('#pIn').onchange = e => {
     const f = e.target.files[0]; if(!f) return;
-    try{ R.photo = await compressImage(f, 1280, .72); $('#pPrev').src = R.photo; $('#pPrev').hidden = false; $('#pDrop').querySelector('span').textContent = 'แตะเพื่อถ่ายใหม่'; }
-    catch(err){ toast(err.message, true); }
+    const seq = ++photoSeq;
+    R.photo = ''; R.photoId = ''; R.upload = null;
+    // ย่อรูปแล้วส่งขึ้นระบบทันที ตอนกดบันทึกจะได้ไม่ต้องรอส่งรูป (ถ้ากดบันทึกเร็ว ระบบจะรอขั้นนี้ให้เสร็จก่อน)
+    R.prep = (async () => {
+      let data;
+      try{ data = await compressImage(f, 1280, .72); }
+      catch(err){ if(seq === photoSeq) toast(err.message, true); return; }
+      if(seq !== photoSeq) return;
+      R.photo = data;
+      const pv = $('#pPrev'); if(pv){ pv.src = data; pv.hidden = false; $('#pDrop').querySelector('span').textContent = 'แตะเพื่อถ่ายใหม่'; }
+      if(S.upUnsupported) return;   // หลังบ้านรุ่นเก่า: ส่งรูปพร้อมการบันทึก
+      setPhotoStatus('กำลังส่งรูป...');
+      R.upload = api('staffUploadPhoto', { photo:data }, S.stoken)
+        .then(res => { if(seq === photoSeq){ R.photoId = res.photoId; setPhotoStatus('ส่งรูปแล้ว'); } })
+        .catch(err => {
+          if(isUnknownAction(err)) S.upUnsupported = true;
+          if(seq === photoSeq){ R.photoId = ''; setPhotoStatus(isUnknownAction(err) ? '' : 'ส่งรูปล่วงหน้าไม่สำเร็จ ระบบจะส่งรูปพร้อมการบันทึก'); }
+        });
+      await R.upload;
+    })();
   };
   $('#saveRec').onclick = e => busy(e.currentTarget, saveRecord);
 }
@@ -980,7 +1280,10 @@ async function saveRecord(){
   if(!R.member) throw new Error('กรุณาค้นหาสมาชิกก่อน');
   const items = R.lines.filter(l => Number(l.quantity) > 0);
   if(!items.length) throw new Error('กรุณาใส่น้ำหนักหรือจำนวนขยะ');
-  const d = await api('staffRecordWaste', { memberId:R.member.memberId, items, photo:R.photo, dropoffId:$('#dp').value, note:$('#nt').value }, S.stoken);
+  if(R.prep) await R.prep;   // ถ้ารูปยังย่อหรือส่งไม่เสร็จ รอให้เสร็จก่อน
+  const payload = { memberId:R.member.memberId, items, dropoffId:$('#dp').value, note:$('#nt').value };
+  if(R.photoId) payload.photoId = R.photoId; else if(R.photo) payload.photo = R.photo;
+  const d = await api('staffRecordWaste', payload, S.stoken);
   $('#found').innerHTML = ''; $('#step2').innerHTML = `
   <div class="card success" style="margin-top:14px">
     <div class="big">+${n(d.earned)}</div><p class="kanit" style="margin:.4em 0 0">แต้มให้ ${esc(d.name)} (${esc(d.memberId)})</p>
@@ -988,19 +1291,24 @@ async function saveRecord(){
     <button class="btn btn-primary btn-lg" id="nextRec">บันทึกรายการถัดไป</button>
   </div>`;
   $('#nextRec').onclick = tabRecord;
-  loadRecent();
+  staleStaff();
+  if(Array.isArray(d.recent)){
+    // หลังบ้านส่งรายการที่เพิ่งบันทึกกลับมาแล้ว ไม่ต้องขอรายการใหม่
+    S.sb = S.sb || {};
+    const old = (S.sb.recent || []).filter(x => !d.recent.some(y => y.txId === x.txId));
+    S.sb.recent = d.recent.concat(old).slice(0, 30);
+    drawRecent(S.sb.recent);
+  } else {
+    api('staffRecent', {}, S.stoken).then(rs => { S.sb = S.sb || {}; S.sb.recent = rs; drawRecent(rs); }).catch(()=>{});
+  }
 }
-async function loadRecent(){
-  try{
-    const rs = await api('staffRecent', {}, S.stoken);
-    const el = $('#recent'); if(!el) return;
-    el.innerHTML = rs.map(r => `<div class="list-item"><div><div class="kanit">${esc(r.memberName)} <span class="muted small">${esc(r.memberId)}</span></div><div class="small muted">${esc(r.wasteName)}${r.quantity?` · ${n(r.quantity)} ${esc(r.unit)}`:''} · ${dt(r.createdAt)}${r.staffName?` · โดย ${esc(r.staffName)}`:''}${r.photoUrl?` · <a href="${esc(r.photoUrl)}" target="_blank" rel="noopener">ดูรูป</a>`:''}</div></div><div class="${r.points<0?'minus':'plus'}">${r.points>0?'+':''}${n(r.points)}</div></div>`).join('') || '<p class="muted">ยังไม่มีรายการ</p>';
-  }catch(e){ const el=$('#recent'); if(el) el.innerHTML = `<p class="muted">${esc(e.message)}</p>`; }
+function drawRecent(rs){
+  const el = $('#recent'); if(!el) return;
+  el.innerHTML = rs.map(r => `<div class="list-item"><div><div class="kanit">${esc(r.memberName)} <span class="muted small">${esc(r.memberId)}</span></div><div class="small muted">${esc(r.wasteName)}${r.quantity?` · ${n(r.quantity)} ${esc(r.unit)}`:''} · ${dt(r.createdAt)}${r.staffName?` · โดย ${esc(r.staffName)}`:''}${r.photoUrl?` · <a href="${esc(r.photoUrl)}" target="_blank" rel="noopener">ดูรูป</a>`:''}</div></div><div class="${r.points<0?'minus':'plus'}">${r.points>0?'+':''}${n(r.points)}</div></div>`).join('') || '<p class="muted">ยังไม่มีรายการ</p>';
 }
 
 /* ---------- สแกน QR ---------- */
 let scanner = null;
-function loadScript(src){ return new Promise((res,rej) => { const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('โหลดตัวสแกนไม่ได้')); document.head.appendChild(s); }); }
 async function startScanner(){
   try{
     if(!window.Html5Qrcode) await loadScript('https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js');
@@ -1012,9 +1320,8 @@ async function startScanner(){
 function stopScanner(){ if(scanner){ const s = scanner; scanner = null; s.stop().then(() => s.clear()).catch(()=>{}); } }
 
 /* ---------- ภาพรวม ---------- */
-async function tabSummary(){
-  $('#sBody').innerHTML = '<div class="skeleton"></div>';
-  const d = await api('adminSummary', {}, S.stoken).catch(e => { toast(e.message,true); return null; }); if(!d) return;
+function tabSummary(){
+  withTabData('summary', 'summary', 'adminSummary', {}, d => {
   $('#sBody').innerHTML = `<div class="stats four">
     <div class="stat"><div class="v">${n(d.members)}</div><div class="k">สมาชิกทั้งหมด</div></div>
     <div class="stat"><div class="v">${n(d.totalKg)}</div><div class="k">กิโลกรัมที่รับแล้ว</div></div>
@@ -1031,15 +1338,22 @@ async function tabSummary(){
   <div class="notice" style="margin-top:14px">วันนี้บันทึกขยะไปแล้ว <b>${n(d.todayRecords)}</b> รายการ</div>
   ${d.pendingRedemptions ? `<div class="notice amber" style="margin-top:10px">มีคำขอแลกของรอดำเนินการ <b>${n(d.pendingRedemptions)}</b> รายการ · <a href="#" id="goRed">ไปที่คำขอแลกของ</a></div>` : ''}`;
   if($('#goRed')) $('#goRed').onclick = ev => { ev.preventDefault(); staffTab = 'redeems'; pageStaff(); };
+  });
 }
 
-/* ---------- คำขอแลกของ ---------- */
+/* ---------- คำขอแลกของ (ข้อมูลทั้งหมดอยู่ในเครื่อง กรองได้ทันที) ---------- */
 let redeemFilter = 'open';
-async function tabRedeems(){
-  const F = [['open','รอดำเนินการ'],['shipped','จัดส่งแล้ว'],['done','ได้รับแล้ว'],['cancelled','ยกเลิก'],['','ทั้งหมด']];
-  $('#sBody').innerHTML = `<div class="chips" id="rf">${F.map(([k,t]) => `<button data-k="${k}" class="${redeemFilter===k?'on':''}">${t}</button>`).join('')}</div><div id="rList"><div class="skeleton"></div></div>`;
-  $$('#rf button').forEach(b => b.onclick = () => { redeemFilter = b.dataset.k; tabRedeems(); });
-  const list = await api('adminRedemptions', { status:redeemFilter }, S.stoken).catch(e => { toast(e.message,true); return null; }); if(!list) return;
+function tabRedeems(){
+  withTabData('redeems', 'redemptions', 'adminRedemptions', { status:'' }, () => {
+    const F = [['open','รอดำเนินการ'],['shipped','จัดส่งแล้ว'],['done','ได้รับแล้ว'],['cancelled','ยกเลิก'],['','ทั้งหมด']];
+    $('#sBody').innerHTML = `<div class="chips" id="rf">${F.map(([k,t]) => `<button data-k="${k}" class="${redeemFilter===k?'on':''}">${t}</button>`).join('')}</div><div id="rList"></div>`;
+    $$('#rf button').forEach(b => b.onclick = () => { redeemFilter = b.dataset.k; $$('#rf button').forEach(x => x.classList.toggle('on', x === b)); drawRedeems(); });
+    drawRedeems();
+  });
+}
+function drawRedeems(){
+  const all = (S.sb && S.sb.redemptions) || [];
+  const list = all.filter(r => redeemFilter === 'open' ? (r.status === 'pending' || r.status === 'preparing') : (!redeemFilter || r.status === redeemFilter));
   $('#rList').innerHTML = list.map(r => `<div class="card" data-id="${esc(r.redeemId)}">
     <div class="sec-head" style="margin-bottom:4px"><h3 style="margin:0">${esc(r.rewardName)}</h3>${stChip(r.status)}</div>
     <div class="small muted">${esc(r.redeemId)} · ${dt(r.createdAt)} · ${n(r.points)} แต้ม · สมาชิก ${esc(r.memberName)} (${esc(r.memberId)})</div>
@@ -1055,16 +1369,17 @@ async function tabRedeems(){
     const card = b.closest('.card'), status = $('.rs',card).value;
     if(status === 'cancelled' && !confirm('ยกเลิกคำขอนี้และคืนแต้มให้สมาชิก?\n(ใส่เหตุผลในช่องข้อความด้วย)')) return;
     busy(e.currentTarget, async () => {
-      await api('adminUpdateRedemption', { redeemId:card.dataset.id, status, note:$('.rn',card).value }, S.stoken);
-      toast('อัปเดตสถานะแล้ว'); tabRedeems();
+      const out = await api('adminUpdateRedemption', { redeemId:card.dataset.id, status, note:$('.rn',card).value, filter:'' }, S.stoken);
+      S.sb.redemptions = out && Array.isArray(out.list) ? out.list : await api('adminRedemptions', { status:'' }, S.stoken);
+      toast('อัปเดตสถานะแล้ว'); S.touched = false; drawRedeems(); staleStaff();
+      if(status === 'cancelled') refreshPublic().catch(()=>{});   // สต็อกของรางวัลเปลี่ยน
     });
   });
 }
 
 /* ---------- ของรางวัล ---------- */
-async function tabRewards(){
-  $('#sBody').innerHTML = '<div class="skeleton"></div>';
-  const list = await api('adminRewards', {}, S.stoken).catch(e => { toast(e.message,true); return null; }); if(!list) return;
+function tabRewards(){
+  withTabData('rewards', 'rewards', 'adminRewards', {}, list => {
   const ppb = Number(S.pub.settings.pointsPerBaht || 10);
   $('#sBody').innerHTML = `<div class="card">
     <div class="sec-head" style="margin-bottom:4px"><h3 style="margin:0">ของรางวัลทั้งหมด (${list.length})</h3><button class="btn btn-primary btn-sm" id="rwNew">+ เพิ่มของรางวัล</button></div>
@@ -1084,10 +1399,12 @@ async function tabRewards(){
   </div>`;
   $('#rwNew').onclick = () => rewardEditor({ category:'local', kind:'item', active:true, images:[], stock:'', sort:list.length + 1 });
   $$('[data-ed]').forEach(b => b.onclick = () => rewardEditor(list.find(r => r.rewardId === b.dataset.ed)));
+  });
 }
 function rewardEditor(r){
   const ppb = Number(S.pub.settings.pointsPerBaht || 10);
   const E = { images:(r.images || []).slice(), photos:[] };   // photos = รูปใหม่ (data URL) ที่ยังไม่อัปโหลด
+  S.touched = false;
   $('#sBody').innerHTML = `<div class="card">
     <h3>${r.rewardId ? 'แก้ไขของรางวัล' : 'เพิ่มของรางวัลใหม่'}</h3>
     <label class="f" for="e_n">ชื่อของรางวัล</label><input id="e_n" value="${esc(r.name || '')}" placeholder="เช่น น้ำมันพืช 1 ลิตร">
@@ -1125,36 +1442,38 @@ function rewardEditor(r){
     $('#e_imgs').innerHTML = all.map((x,i) => `<div class="im"><img src="${esc(x.src)}" alt=""><button class="x" data-i="${i}" aria-label="ลบรูป">×</button>${i === 0 ? '<span class="cover">รูปหลัก</span>' : `<button class="mk" data-m="${i}">ตั้งรูปหลัก</button>`}</div>`).join('')
       + (all.length < 6 ? `<label class="add">+ เพิ่มรูป<input type="file" id="e_f" accept="image/*" multiple hidden></label>` : '');
     const nOld = E.images.length;
-    $$('#e_imgs .x').forEach(b => b.onclick = () => { const i = +b.dataset.i; if(i < nOld) E.images.splice(i,1); else E.photos.splice(i - nOld,1); drawImgs(); });
+    $$('#e_imgs .x').forEach(b => b.onclick = () => { const i = +b.dataset.i; if(i < nOld) E.images.splice(i,1); else E.photos.splice(i - nOld,1); S.touched = true; drawImgs(); });
     $$('#e_imgs .mk').forEach(b => b.onclick = () => {
       const i = +b.dataset.m;
       if(i < nOld){ E.images.unshift(E.images.splice(i,1)[0]); }
       else if(nOld === 0){ E.photos.unshift(E.photos.splice(i,1)[0]); }
       else toast('บันทึกรูปใหม่ก่อน แล้วค่อยตั้งเป็นรูปหลัก', true);
-      drawImgs();
+      S.touched = true; drawImgs();
     });
     if($('#e_f')) $('#e_f').onchange = async ev => {
       const files = [...ev.target.files].slice(0, 6 - all.length);
       for(const f of files){ try{ E.photos.push(await compressImage(f, 1200, .8)); }catch(err){ toast(err.message, true); } }
-      drawImgs();
+      S.touched = true; drawImgs();
     };
   };
   drawImgs();
-  $('#e_back').onclick = tabRewards;
+  $('#e_back').onclick = () => { S.touched = false; tabRewards(); };
   $('#e_save').onclick = e => busy(e.currentTarget, async () => {
-    await api('adminSaveReward', {
+    const out = await api('adminSaveReward', {
       rewardId:r.rewardId || '', name:$('#e_n').value, category:$('#e_c').value, kind:($('input[name=e_k]:checked')||{}).value,
       cost:$('#e_cost').value, points:$('#e_p').value, stock:$('#e_s').value, description:$('#e_d').value, sponsor:$('#e_sp').value,
       active:$('#e_a').checked, sort:$('#e_o').value, images:E.images, newPhotos:E.photos
     }, S.stoken);
-    toast('บันทึกของรางวัลแล้ว'); await refreshPublic(); tabRewards();
+    S.sb = S.sb || {};
+    S.sb.rewards = out && Array.isArray(out.list) ? out.list : await api('adminRewards', {}, S.stoken);
+    toast('บันทึกของรางวัลแล้ว'); S.touched = false; tabRewards();
+    refreshPublic().catch(()=>{});   // อัปเดตหน้าเว็บสาธารณะเบื้องหลัง ไม่ต้องรอ
   });
 }
 
 /* ---------- ประเภทขยะ ---------- */
-async function tabTypes(){
-  $('#sBody').innerHTML = '<div class="skeleton"></div>';
-  const list = await api('adminWasteTypes', {}, S.stoken).catch(e => { toast(e.message,true); return null; }); if(!list) return;
+function tabTypes(){
+  withTabData('types', 'wasteTypes', 'adminWasteTypes', {}, list => {
   const rowHtml = t => `<tr data-id="${esc(t.wasteTypeId||'')}">
     <td><input class="tn" value="${esc(t.name||'')}" placeholder="ชื่อประเภท"><input class="td" value="${esc(t.description||'')}" placeholder="คำแนะนำ เช่น ล้างให้สะอาด" style="margin-top:6px;font-size:.92rem;min-height:42px"></td>
     <td style="width:110px"><input class="tr" type="number" min="0" step="1" value="${esc(t.pointsPerUnit ?? '')}"><div class="small muted tsh"></div></td>
@@ -1175,21 +1494,38 @@ async function tabTypes(){
     const tr = b.closest('tr');
     busy(e.currentTarget, async () => {
       const saved = await api('adminSaveWasteType', { wasteTypeId:tr.dataset.id, name:$('.tn',tr).value, description:$('.td',tr).value, pointsPerUnit:$('.tr',tr).value, salePrice:$('.tp',tr).value, unit:$('.tu',tr).value, active:$('.ta',tr).checked, sort:[...tr.parentNode.children].indexOf(tr)+1 }, S.stoken);
-      tr.dataset.id = saved.wasteTypeId; toast('บันทึก ' + saved.name + ' แล้ว'); await refreshPublic();
+      tr.dataset.id = saved.wasteTypeId; toast('บันทึก ' + saved.name + ' แล้ว');
+      if(Array.isArray(saved.list)){ S.sb = S.sb || {}; S.sb.wasteTypes = saved.list; } else staleStaff();
+      refreshPublic().catch(()=>{});   // อัปเดตหน้าเว็บสาธารณะเบื้องหลัง ไม่ต้องรอ
     });
   }; });
   bind();
-  $('#addType').onclick = () => { $('#tBody').insertAdjacentHTML('beforeend', rowHtml({ unit:'กก.', active:true })); bind(); };
+  $('#addType').onclick = () => { $('#tBody').insertAdjacentHTML('beforeend', rowHtml({ unit:'กก.', active:true })); S.touched = true; bind(); };
+  });
 }
 
 /* ---------- สมาชิก ---------- */
-async function tabMembers(q=''){
-  $('#sBody').innerHTML = `<div class="card">
-    <div class="row"><input id="mq" placeholder="ค้นหาชื่อ เบอร์ หรือรหัสสมาชิก" value="${esc(q)}"><button class="btn btn-primary" id="mqBtn">ค้นหา</button></div>
-    <div id="mList" style="margin-top:12px"><div class="skeleton" style="height:80px"></div></div></div>`;
-  $('#mqBtn').onclick = () => tabMembers($('#mq').value);
-  $('#mq').onkeydown = e => { if(e.key === 'Enter') tabMembers($('#mq').value); };
-  const list = await api('adminMembers', { q }, S.stoken).catch(e => { toast(e.message,true); return []; });
+let memberQuery = '';
+function tabMembers(q){
+  if(q !== undefined) memberQuery = q;
+  const box = $('#sBody');
+  box.innerHTML = `<div class="card">
+    <div class="row"><input id="mq" placeholder="ค้นหาชื่อ เบอร์ หรือรหัสสมาชิก" value="${esc(memberQuery)}"><button class="btn btn-primary" id="mqBtn">ค้นหา</button></div>
+    <div id="mList" style="margin-top:12px">${skel(80)}</div></div>`;
+  $('#mqBtn').onclick = () => tabMembers($('#mq').value.trim());
+  $('#mq').onkeydown = e => { if(e.key === 'Enter') tabMembers($('#mq').value.trim()); };
+  const show = list => { if(staffTab === 'members' && $('#mList')) drawMembers(list); };
+  if(!memberQuery){
+    withMembers(show);
+  } else {
+    api('adminMembers', { q:memberQuery }, S.stoken).then(show).catch(e => { toast(e.message,true); show([]); });
+  }
+}
+async function withMembers(cb){
+  try{ cb(S.sb && S.sb.members ? S.sb.members : await sbGet('members', 'adminMembers', { q:'' })); maybeRefreshStaff('members'); }
+  catch(e){ toast(e.message, true); cb([]); }
+}
+function drawMembers(list){
   $('#mList').innerHTML = list.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>สมาชิก</th><th>แต้ม</th><th>กก.</th><th></th></tr></thead><tbody>
     ${list.map(m => `<tr><td><div class="kanit">${esc(m.name)}</div><div class="small muted">${esc(m.memberId)} · ${esc(m.phone)}</div></td><td class="kanit">${n(m.points)}</td><td>${n(m.totalKg)}</td>
     <td style="white-space:nowrap"><button class="btn btn-soft btn-sm" data-pin="${esc(m.memberId)}">รีเซ็ต PIN</button> <button class="btn btn-ghost btn-sm" data-adj="${esc(m.memberId)}">ปรับแต้ม</button></td></tr>`).join('')}
@@ -1201,21 +1537,29 @@ async function tabMembers(q=''){
   $$('[data-adj]').forEach(b => b.onclick = e => {
     const delta = prompt('ปรับแต้ม ' + b.dataset.adj + '\nใส่จำนวน เช่น 10 (เพิ่ม) หรือ -10 (ลด)'); if(!delta) return;
     const note = prompt('เหตุผลในการปรับแต้ม (จำเป็น)'); if(!note) return;
-    busy(e.currentTarget, async () => { const r = await api('adminAdjustPoints', { memberId:b.dataset.adj, delta, note }, S.stoken); toast('ปรับแล้ว คงเหลือ ' + n(r.balance) + ' แต้ม'); tabMembers($('#mq') ? $('#mq').value : ''); });
+    busy(e.currentTarget, async () => {
+      const r = await api('adminAdjustPoints', { memberId:b.dataset.adj, delta, note }, S.stoken);
+      toast('ปรับแล้ว คงเหลือ ' + n(r.balance) + ' แต้ม'); staleStaff();
+      if(r.member){
+        const upd = arr => (arr || []).map(x => x.memberId === r.member.memberId ? r.member : x);
+        if(S.sb && S.sb.members) S.sb.members = upd(S.sb.members);
+        drawMembers(upd(list));
+      } else tabMembers();
+    });
   });
 }
 
 /* ---------- เจ้าหน้าที่ ---------- */
-async function tabStaffs(){
-  $('#sBody').innerHTML = '<div class="skeleton"></div>';
-  const list = await api('adminStaff', {}, S.stoken).catch(e => { toast(e.message,true); return null; }); if(!list) return;
+function tabStaffs(){
+  withTabData('staffs', 'staffList', 'adminStaff', {}, list => {
   $('#sBody').innerHTML = `<div class="card"><h3>บัญชีเจ้าหน้าที่</h3>
     <p class="small muted">"เจ้าหน้าที่จุดรับ" บันทึกขยะได้อย่างเดียว · "แอดมิน" แก้ไขได้ทุกอย่าง</p>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>ชื่อผู้ใช้</th><th>ชื่อที่แสดง</th><th>สิทธิ์</th><th>ใช้งาน</th><th>รหัสผ่านใหม่</th><th></th></tr></thead><tbody id="stBody">
     ${list.map(stRow).join('')}</tbody></table></div>
     <button class="btn btn-soft btn-sm" id="addSt" style="margin-top:10px">+ เพิ่มเจ้าหน้าที่</button></div>`;
   bindSt();
-  $('#addSt').onclick = () => { $('#stBody').insertAdjacentHTML('beforeend', stRow({ role:'staff', active:true })); bindSt(); };
+  $('#addSt').onclick = () => { $('#stBody').insertAdjacentHTML('beforeend', stRow({ role:'staff', active:true })); S.touched = true; bindSt(); };
+  });
 }
 function stRow(s){
   return `<tr data-id="${esc(s.staffId||'')}"><td style="min-width:120px"><input class="su" value="${esc(s.username||'')}" autocapitalize="none"></td>
@@ -1231,14 +1575,16 @@ function bindSt(){
     busy(e.currentTarget, async () => {
       const s = await api('adminSaveStaff', { staffId:tr.dataset.id, username:$('.su',tr).value, displayName:$('.sd',tr).value, role:$('.sr',tr).value, active:$('.sa',tr).checked, password:$('.sp',tr).value }, S.stoken);
       tr.dataset.id = s.staffId; $('.sp',tr).value = ''; $('.sp',tr).placeholder = 'เว้นว่าง = ไม่เปลี่ยน'; toast('บันทึก ' + s.username + ' แล้ว');
+      if(s.token){ S.stoken = s.token; save('yd_stoken', s.token); }   // เปลี่ยนรหัสผ่านตัวเอง: ได้บัตรผ่านใหม่ ไม่ต้องเข้าระบบใหม่
+      if(Array.isArray(s.list)){ S.sb = S.sb || {}; S.sb.staffList = s.list; }
+      if(S.staff && s.staffId === S.staff.staffId){ S.staff = Object.assign({}, S.staff, { username:s.username, displayName:s.displayName, role:s.role }); save('yd_staff', JSON.stringify(S.staff)); renderShell(); }
     });
   });
 }
 
 /* ---------- ตั้งค่า ---------- */
-async function tabSettings(){
-  $('#sBody').innerHTML = '<div class="skeleton"></div>';
-  const st = await api('adminSettings', {}, S.stoken).catch(e => { toast(e.message,true); return null; }); if(!st) return;
+function tabSettings(){
+  withTabData('settings', 'settings', 'adminSettings', {}, st => {
   $('#sBody').innerHTML = `
   <div class="card"><h3>โลโก้เว็บไซต์</h3>
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
@@ -1263,13 +1609,21 @@ async function tabSettings(){
     try{
       const data = await compressImage(f, 512, .9);
       const r = await api('adminUploadLogo', { photo:data }, S.stoken);
-      $('#logoPrev').innerHTML = `<img src="${esc(DEMO ? data : r.logoUrl)}" alt="โลโก้">`;
-      await refreshPublic(); if(DEMO){ S.pub.settings.logoUrl = data; } renderShell(); toast('เปลี่ยนโลโก้แล้ว');
+      const url = DEMO ? data : r.logoUrl;
+      $('#logoPrev').innerHTML = `<img src="${esc(url)}" alt="โลโก้">`;
+      S.pub.settings.logoUrl = url; saveJSON(PUB_KEY, S.pub);
+      if(S.sb && S.sb.settings) S.sb.settings.logoUrl = url;
+      renderShell(); toast('เปลี่ยนโลโก้แล้ว');
     }catch(err){ toast(err.message, true); }
   };
   $('#setBtn').onclick = e => busy(e.currentTarget, async () => {
-    await api('adminSaveSettings', { facebookPage:$('#s_fp').value, email:$('#s_em').value, dataController:$('#s_dc').value, dataControllerAddress:$('#s_da').value, brandFacebook:$('#s_bf').value, brandLine:$('#s_bl').value, requirePhoto:$('#s_rp').checked, postMinPoints:$('#s_pm').value }, S.stoken);
-    await refreshPublic(); renderShell(); toast('บันทึกการตั้งค่าแล้ว');
+    const out = await api('adminSaveSettings', { facebookPage:$('#s_fp').value, email:$('#s_em').value, dataController:$('#s_dc').value, dataControllerAddress:$('#s_da').value, brandFacebook:$('#s_bf').value, brandLine:$('#s_bl').value, requirePhoto:$('#s_rp').checked, postMinPoints:$('#s_pm').value }, S.stoken);
+    if(out && out.settings){
+      S.pub.settings = Object.assign({}, S.pub.settings, out.settings); saveJSON(PUB_KEY, S.pub);
+      if(out.admin){ S.sb = S.sb || {}; S.sb.settings = out.admin; }
+    } else { await refreshPublic(); staleStaff(); }
+    S.touched = false; renderShell(); toast('บันทึกการตั้งค่าแล้ว');
+  });
   });
 }
 
@@ -1290,6 +1644,7 @@ function compressImage(file, max, q){
 
 /* =========================================================
  *  โหมดทดลอง (ใช้เมื่อยังไม่ได้ใส่ API_URL)
+ *  จำลองการทำงานและรูปแบบข้อมูลของหลังบ้านรุ่น 2 · ข้อมูลหายเมื่อรีเฟรชหน้า
  * ========================================================= */
 const MOCK = (() => {
   const ago = d => new Date(Date.now() - d*864e5).toISOString();
@@ -1310,135 +1665,278 @@ const MOCK = (() => {
       { rewardId:'RW05', sort:5, name:'ปุ๋ยหมักชีวภาพ', category:'green', points:400, description:'(ตัวอย่างสำหรับทดลอง)', imageUrls:'', stock:10, active:true, kind:'item', cost:40 }
     ],
     dropoffs:[{ dropoffId:'DP01', name:'ที่ทำการกลุ่มตลิ่งชันอยากอยู่ดี', address:'ถนนพุทธมณฑลสาย 1 ซอย 19 แขวงบางระมาด เขตตลิ่งชัน กรุงเทพมหานคร 10170', lat:'', lng:'', openHours:'(ใส่วันและเวลาเปิดรับ)', acceptedTypes:'ทุกประเภท', active:true }],
-    members:[{ memberId:'YD-0001', name:'สมชาย ใจดี', phone:'0812345678', pin:'246810', points:513, totalKg:10.4, createdAt:ago(40), status:'active' }],
+    // pv = รุ่นรหัสผ่าน: รีเซ็ต PIN หรือเปลี่ยนรหัสผ่านแล้ว บัตรผ่านเดิมใช้ไม่ได้ (เหมือนระบบจริง)
+    members:[{ memberId:'YD-0001', name:'สมชาย ใจดี', phone:'0812345678', pin:'246810', pv:1, points:513, totalKg:10.4, createdAt:ago(40), status:'active' }],
     staff:[
-      { staffId:'ST01', username:'admin', displayName:'ผู้ดูแลระบบ', password:'demo1234', role:'admin', active:true },
-      { staffId:'ST02', username:'staff1', displayName:'เจ้าหน้าที่จุดรับ 1', password:'demo1234', role:'staff', active:true }
+      { staffId:'ST01', username:'admin', displayName:'ผู้ดูแลระบบ', password:'demo1234', pv:1, role:'admin', active:true },
+      { staffId:'ST02', username:'staff1', displayName:'เจ้าหน้าที่จุดรับ 1', password:'demo1234', pv:1, role:'staff', active:true }
     ],
     tx:[
-      { txId:'T1', memberId:'YD-0001', type:'earn', wasteName:'ขวดพลาสติกใส (PET)', quantity:6.2, unit:'กก.', points:130, saleValue:43.4, staffId:'ST02', note:'', createdAt:ago(30) },
-      { txId:'T2', memberId:'YD-0001', type:'earn', wasteName:'กระป๋องอะลูมิเนียม', quantity:2.2, unit:'กก.', points:363, saleValue:121, staffId:'ST02', note:'', createdAt:ago(12) },
-      { txId:'T3', memberId:'YD-0001', type:'earn', wasteName:'ฝาขวดพลาสติก', quantity:2, unit:'กก.', points:30, saleValue:6, staffId:'ST02', note:'', createdAt:ago(3) },
-      { txId:'T4', memberId:'YD-0001', type:'adjust', wasteName:'ปรับแต้มโดยเจ้าหน้าที่', quantity:'', unit:'', points:-10, staffId:'ST01', note:'แก้ไขน้ำหนักที่กรอกผิด', createdAt:ago(3) }
+      { txId:'TX1', memberId:'YD-0001', type:'earn', wasteName:'ขวดพลาสติกใส (PET)', quantity:6.2, unit:'กก.', points:130, saleValue:43.4, staffId:'ST02', note:'', photo:'', createdAt:ago(30) },
+      { txId:'TX2', memberId:'YD-0001', type:'earn', wasteName:'กระป๋องอะลูมิเนียม', quantity:2.2, unit:'กก.', points:363, saleValue:121, staffId:'ST02', note:'', photo:'', createdAt:ago(12) },
+      { txId:'TX3', memberId:'YD-0001', type:'earn', wasteName:'ฝาขวดพลาสติก', quantity:2, unit:'กก.', points:30, saleValue:6, staffId:'ST02', note:'', photo:'', createdAt:ago(3) },
+      { txId:'TX4', memberId:'YD-0001', type:'adjust', wasteName:'ปรับแต้มโดยเจ้าหน้าที่', quantity:'', unit:'', points:-10, staffId:'ST01', note:'แก้ไขน้ำหนักที่กรอกผิด', photo:'', createdAt:ago(3) }
     ],
     redemptions:[],
-    sessions:{}
+    photos:{}   // รูปที่อัปโหลดล่วงหน้า: photoId -> staffId
   };
 })();
 function mockApi(action, p, token){
-  const M = MOCK, err = msg => { throw new Error(msg); };
+  const M = MOCK;
+  const err = (msg, code) => { const e = new Error(msg); if(code) e.code = code; throw e; };
+  const authErr = () => err('กรุณาเข้าสู่ระบบใหม่', 'AUTH');
+  const r2 = v => Math.round(Number(v || 0) * 100) / 100;
   const normPhone = v => { let d = String(v||'').replace(/\D/g,''); if(d.startsWith('66') && d.length===11) d='0'+d.slice(2); if(!/^0\d{8,9}$/.test(d)) err('เบอร์โทรไม่ถูกต้อง (เช่น 0812345678)'); return d; };
   const checkPin = pin => { if(!/^\d{6}$/.test(pin)) err('PIN ต้องเป็นตัวเลข 6 หลัก'); if(/^(\d)\1{5}$/.test(pin) || '0123456789'.includes(pin) || '9876543210'.includes(pin)) err('PIN ง่ายเกินไป กรุณาตั้งใหม่ (ห้ามเลขเรียงหรือเลขซ้ำทั้งหมด)'); };
-  const mView = m => ({ memberId:m.memberId, name:m.name, phoneMasked:m.phone.slice(0,3)+'-xxx-'+m.phone.slice(-4), points:m.points, totalKg:Math.round(m.totalKg*100)/100, createdAt:m.createdAt });
-  const sView = s => ({ staffId:s.staffId, username:s.username, displayName:s.displayName, role:s.role, active:s.active });
-  const sess = (kind, id) => { const t = Math.random().toString(36).slice(2) + Date.now(); M.sessions[t] = { kind, id }; return t; };
-  const needMember = () => { const s = M.sessions[token]; if(!s || s.kind!=='member'){ onAuthExpired(action); err('กรุณาเข้าสู่ระบบใหม่'); } return M.members.find(m => m.memberId === s.id); };
-  const needStaff = admin => { const s = M.sessions[token]; if(!s || s.kind!=='staff'){ onAuthExpired(action); err('กรุณาเข้าสู่ระบบใหม่'); } const st = M.staff.find(x => x.staffId === s.id); if(admin && st.role!=='admin') err('เฉพาะแอดมินเท่านั้น'); return st; };
-  const nextId = (ids, pre, w) => pre + String(Math.max(0, ...ids.map(i => Number(String(i).match(/(\d+)$/)?.[1] || 0))) + 1).padStart(w,'0');
   const normId = v => { const m = String(v||'').trim().match(/^yd-?(\d+)$/i); return m ? 'YD-' + String(Number(m[1])).padStart(4,'0') : String(v||'').trim(); };
-  const newMember = (name, phone, pin, consent) => {
-    if(!String(name||'').trim()) err('กรุณากรอกชื่อ'); phone = normPhone(phone); checkPin(String(pin||'')); if(!consent) err('กรุณากดยินยอมการเก็บข้อมูลก่อนสมัคร');
+  const nextId = (ids, pre, w) => pre + String(Math.max(0, ...ids.map(i => Number(String(i).match(/(\d+)$/)?.[1] || 0))) + 1).padStart(w,'0');
+  const memberName = id => (M.members.find(m => m.memberId === id) || {}).name || '';
+  const staffName = id => (M.staff.find(s => s.staffId === id) || {}).displayName || '';
+
+  /* ---------- รูปแบบข้อมูลที่ส่งกลับ (ตรงกับหลังบ้านรุ่น 2) ---------- */
+  const mView = m => ({ memberId:m.memberId, name:m.name, phoneMasked:m.phone.slice(0,3)+'-xxx-'+m.phone.slice(-4), points:m.points, totalKg:r2(m.totalKg), createdAt:m.createdAt });
+  const aView = m => ({ memberId:m.memberId, name:m.name, phone:m.phone, points:m.points, totalKg:r2(m.totalKg), createdAt:m.createdAt, status:m.status });
+  const sView = s => ({ staffId:s.staffId, username:s.username, displayName:s.displayName, role:s.role, active:!!s.active });
+  const redView = r => ({ redeemId:r.redeemId, rewardId:r.rewardId, rewardName:r.rewardName, points:r.points, status:r.status, statusNote:r.statusNote, createdAt:r.createdAt, updatedAt:r.updatedAt, method:r.method, dropoffId:r.dropoffId });
+  const recentView = t => ({ txId:t.txId, createdAt:t.createdAt, memberId:t.memberId, memberName:memberName(t.memberId), type:t.type, wasteName:t.wasteName, quantity:Number(t.quantity)||0, unit:t.unit, points:t.points, photoUrl:'', staffName:staffName(t.staffId), note:t.note });
+  const wtView = t => ({ wasteTypeId:t.wasteTypeId, name:t.name, unit:t.unit, pointsPerUnit:Number(t.pointsPerUnit), description:t.description, active:!!t.active, sort:Number(t.sort)||0, salePrice:Number(t.salePrice)||0 });
+  const rwView = r => ({ rewardId:r.rewardId, name:r.name, category:r.category, points:r.points, cost:Number(r.cost)||0, description:r.description, images:r.imageUrls ? r.imageUrls.split('\n') : [], stock:r.stock === '' ? '' : Number(r.stock), active:!!r.active, sort:Number(r.sort)||0, kind:r.kind === 'coupon' ? 'coupon' : 'item', sponsor:r.sponsor || '' });
+  const bySort = (a,b) => (Number(a.sort)||0) - (Number(b.sort)||0);
+  const PUBLIC_KEYS = ['siteName','logoUrl','facebookPage','email','dataController','dataControllerAddress','pointsPerBaht','postMinPoints','brandFacebook','brandLine'];
+  const EDIT_KEYS = ['facebookPage','email','dataController','dataControllerAddress','requirePhoto','postMinPoints','brandFacebook','brandLine'];
+  const publicSettings = () => Object.fromEntries(PUBLIC_KEYS.map(k => [k, M.settings[k] || '']));
+  const adminSettings = () => Object.assign({ logoUrl:M.settings.logoUrl || '' }, Object.fromEntries(EDIT_KEYS.map(k => [k, M.settings[k] ?? ''])));
+  const payload = (m, isNew) => {
+    const reds = isNew ? [] : M.redemptions.filter(r => r.memberId === m.memberId).slice().reverse();
+    const last = reds.find(r => r.address);
+    return {
+      member:mView(m),
+      history:isNew ? [] : M.tx.filter(t => t.memberId === m.memberId).slice().reverse().slice(0,100)
+        .map(t => ({ createdAt:t.createdAt, type:t.type, wasteName:t.wasteName, quantity:Number(t.quantity)||0, unit:t.unit, points:t.points, note:t.note })),
+      redemptions:reds.slice(0,50).map(redView),
+      lastShipping:last ? { recipientName:last.recipientName, phone:last.phone, address:last.address, otherContact:last.otherContact }
+        : { recipientName:m.name, phone:m.phone, address:'', otherContact:'' }
+    };
+  };
+  const redemptionList = want => M.redemptions.filter(r => want === 'open' ? (r.status === 'pending' || r.status === 'preparing') : (!want || r.status === want))
+    .slice().reverse().slice(0,200).map(r => Object.assign(redView(r), { memberId:r.memberId, memberName:memberName(r.memberId), recipientName:r.recipientName, phone:r.phone, address:r.address, otherContact:r.otherContact }));
+  const recentList = st => M.tx.filter(t => st.role === 'admin' || t.staffId === st.staffId).slice().reverse().slice(0,30).map(recentView);
+  const memberSearch = q => {
+    q = String(q || '').trim().toLowerCase(); const qd = q.replace(/\D/g,'');
+    return M.members.filter(m => !q || m.name.toLowerCase().includes(q) || m.memberId.toLowerCase().includes(q) || (qd.length >= 3 && m.phone.includes(qd))).slice().reverse().slice(0,100).map(aView);
+  };
+  const summary = () => {
+    const ppb = Number(M.settings.pointsPerBaht) || 10, today = new Date().toDateString();
+    const earn = M.tx.filter(t => t.type === 'earn');
+    const issued = earn.reduce((a,t) => a + t.points, 0), outstanding = M.members.reduce((a,m) => a + m.points, 0);
+    return { members:M.members.length, totalKg:r2(M.members.reduce((a,m) => a + m.totalKg, 0)), pointsIssued:rp(issued), pointsOutstanding:rp(outstanding),
+      todayRecords:earn.filter(t => new Date(t.createdAt).toDateString() === today).length, pointsPerBaht:ppb,
+      revenue:r2(earn.reduce((a,t) => a + (t.saleValue || 0), 0)), issuedValue:r2(issued / ppb), outstandingValue:r2(outstanding / ppb),
+      pendingRedemptions:M.redemptions.filter(r => r.status === 'pending' || r.status === 'preparing').length };
+  };
+
+  /* ---------- บัตรผ่าน (จำลองแบบไม่ต้องจำในระบบ เหมือนระบบจริง) ---------- */
+  const issue = (kind, id, pv) => ['demo', kind, id, pv].join('.');
+  const readTok = kind => { const t = String(token || '').split('.'); if(t.length !== 4 || t[0] !== 'demo' || t[1] !== kind) authErr(); return t; };
+  const needMember = () => { const t = readTok('member'); const m = M.members.find(x => x.memberId === t[2]); if(!m || m.status === 'disabled' || String(m.pv) !== t[3]) authErr(); return m; };
+  const needStaff = admin => { const t = readTok('staff'); const s = M.staff.find(x => x.staffId === t[2]); if(!s || !s.active || String(s.pv) !== t[3]) authErr(); if(admin && s.role !== 'admin') err('เฉพาะแอดมินเท่านั้น'); return s; };
+  const newMember = (name, phone, pin, consent, consentMsg) => {
+    if(!String(name||'').trim()) err('กรุณากรอกชื่อ'); phone = normPhone(phone); checkPin(String(pin||'')); if(!consent) err(consentMsg);
     if(M.members.some(m => m.phone === phone)) err('เบอร์นี้สมัครไว้แล้ว กรุณาเข้าสู่ระบบ หรือติดต่อเจ้าหน้าที่หากลืม PIN');
-    const m = { memberId:nextId(M.members.map(x=>x.memberId),'YD-',4), name:String(name).trim(), phone, pin:String(pin), points:0, totalKg:0, createdAt:new Date().toISOString(), status:'active' };
+    const m = { memberId:nextId(M.members.map(x=>x.memberId),'YD-',4), name:String(name).trim(), phone, pin:String(pin), pv:1, points:0, totalKg:0, createdAt:new Date().toISOString(), status:'active' };
     M.members.push(m); return m;
   };
+
   switch(action){
     case 'publicData': return {
-      settings:{...M.settings},
-      wasteTypes:M.wasteTypes.filter(t=>t.active).sort((a,b)=>a.sort-b.sort).map(t=>({ id:t.wasteTypeId, name:t.name, unit:t.unit, pointsPerUnit:Number(t.pointsPerUnit), description:t.description })),
-      rewards:M.rewards.filter(r=>r.active).sort((a,b)=>(a.sort||99)-(b.sort||99)).map(r=>({ id:r.rewardId, name:r.name, category:r.category, points:r.points, description:r.description, images:r.imageUrls?r.imageUrls.split('\n'):[], stock:r.stock, kind:r.kind==='coupon'?'coupon':'item', sponsor:r.sponsor||'' })),
+      settings:publicSettings(),
+      wasteTypes:M.wasteTypes.filter(t=>t.active).sort(bySort).map(t=>({ id:t.wasteTypeId, name:t.name, unit:t.unit, pointsPerUnit:Number(t.pointsPerUnit), description:t.description })),
+      rewards:M.rewards.filter(r=>r.active).sort(bySort).map(r=>({ id:r.rewardId, name:r.name, category:r.category, points:r.points, description:r.description, images:r.imageUrls?r.imageUrls.split('\n'):[], stock:r.stock, kind:r.kind==='coupon'?'coupon':'item', sponsor:r.sponsor||'' })),
       dropoffs:M.dropoffs.filter(d=>d.active).map(d=>({ id:d.dropoffId, name:d.name, address:d.address, lat:d.lat, lng:d.lng, openHours:d.openHours, acceptedTypes:d.acceptedTypes }))
     };
-    case 'register': { const m = newMember(p.name, p.phone, p.pin, p.consent); return { token:sess('member', m.memberId), member:mView(m) }; }
-    case 'memberLogin': { const ph = normPhone(p.phone); const m = M.members.find(x => x.phone === ph); if(!m || m.pin !== String(p.pin)) err('เบอร์โทรหรือ PIN ไม่ถูกต้อง'); return { token:sess('member', m.memberId), member:mView(m) }; }
-    case 'memberMe': {
-      const m = needMember(); const reds = M.redemptions.filter(r => r.memberId === m.memberId).slice().reverse();
-      return { member:mView(m), history:M.tx.filter(t=>t.memberId===m.memberId).slice().reverse(),
-        redemptions:reds.map(r => ({ redeemId:r.redeemId, rewardId:r.rewardId, rewardName:r.rewardName, points:r.points, status:r.status, statusNote:r.statusNote, createdAt:r.createdAt, method:r.method, dropoffId:r.dropoffId })),
-        lastShipping: reds.find(r => r.address) ? (r => ({ recipientName:r.recipientName, phone:r.phone, address:r.address, otherContact:r.otherContact }))(reds.find(r => r.address)) : { recipientName:m.name, phone:m.phone, address:'', otherContact:'' } };
+
+    /* ---------- สมาชิก ---------- */
+    case 'register': {
+      const m = newMember(p.name, p.phone, p.pin, p.consent, 'กรุณากดยินยอมการเก็บข้อมูลก่อนสมัคร');
+      return Object.assign(payload(m, true), { token:issue('member', m.memberId, m.pv) });
     }
+    case 'memberLogin': {
+      const ph = normPhone(p.phone); const m = M.members.find(x => x.phone === ph);
+      if(!m || m.pin !== String(p.pin)) err('เบอร์โทรหรือ PIN ไม่ถูกต้อง');
+      if(m.status === 'disabled') err('บัญชีนี้ถูกระงับ กรุณาติดต่อเจ้าหน้าที่');
+      return Object.assign(payload(m, false), { token:issue('member', m.memberId, m.pv) });
+    }
+    case 'memberMe': return payload(needMember(), false);
     case 'memberRedeem': {
       const m = needMember();
       const r = M.rewards.find(x => x.rewardId === p.rewardId && x.active); if(!r) err('ไม่พบของรางวัลนี้ หรือปิดการแลกแล้ว');
       const method = r.kind === 'coupon' ? 'coupon' : String(p.method||'');
       if(r.kind !== 'coupon' && !['pickup','volunteer','post'].includes(method)) err('กรุณาเลือกวิธีรับของ');
-      if(method === 'post' && r.points < Number(M.settings.postMinPoints)) err('ส่งทางขนส่งได้เฉพาะของรางวัลตั้งแต่ ' + M.settings.postMinPoints + ' แต้มขึ้นไป');
-      let recipientName = String(p.recipientName||'').trim() || m.name, phone = p.phone ? normPhone(p.phone) : m.phone, address = '', dropoffId = '';
-      if(method === 'pickup'){ dropoffId = p.dropoffId; if(!M.dropoffs.some(d => d.dropoffId === dropoffId)) err('กรุณาเลือกจุดรับของ'); }
+      if(method === 'post' && r.points < Number(M.settings.postMinPoints || 500)) err('ส่งทางขนส่งได้เฉพาะของรางวัลตั้งแต่ ' + Number(M.settings.postMinPoints || 500) + ' แต้มขึ้นไป');
+      const recipientName = String(p.recipientName||'').trim() || m.name, phone = p.phone ? normPhone(p.phone) : m.phone;
+      let address = '', dropoffId = '';
+      if(method === 'pickup'){ dropoffId = String(p.dropoffId||''); if(!M.dropoffs.some(d => d.dropoffId === dropoffId && d.active)) err('กรุณาเลือกจุดรับของ'); }
       if(method === 'volunteer' || method === 'post'){ if(!String(p.recipientName||'').trim()) err('กรุณากรอกชื่อ-นามสกุลผู้รับ'); address = String(p.address||'').trim(); if(address.length < 10) err('กรุณากรอกที่อยู่สำหรับจัดส่งให้ครบถ้วน'); }
-      if(r.stock !== '' && Number(r.stock) <= 0) err('ของรางวัลนี้หมดแล้ว');
+      const hasStock = r.stock !== '';
+      if(hasStock && Number(r.stock) <= 0) err('ของรางวัลนี้หมดแล้ว');
       if(m.points < r.points) err(`แต้มไม่พอ (มี ${m.points} แต้ม ต้องใช้ ${r.points} แต้ม)`);
-      m.points = rp(m.points - r.points); if(r.stock !== '') r.stock = Number(r.stock) - 1;
+      m.points = rp(m.points - r.points); if(hasStock) r.stock = Number(r.stock) - 1;
       const redeemId = nextId(M.redemptions.map(x=>x.redeemId),'RD',5), now = new Date().toISOString();
-      M.redemptions.push({ redeemId, memberId:m.memberId, rewardId:r.rewardId, rewardName:r.name, points:r.points, status:'pending', recipientName, phone, address, otherContact:p.otherContact||'', statusNote:'', createdAt:now, method, dropoffId });
-      M.tx.push({ txId:'R'+Date.now(), memberId:m.memberId, type:'redeem', wasteName:'แลก: '+r.name, quantity:'', unit:'', points:-r.points, staffId:'', note:redeemId, createdAt:now });
-      return { redeemId, rewardName:r.name, points:r.points, balance:m.points, method };
+      M.redemptions.push({ redeemId, memberId:m.memberId, rewardId:r.rewardId, rewardName:r.name, points:r.points, status:'pending', recipientName, phone, address, otherContact:String(p.otherContact||'').trim(), statusNote:'', createdAt:now, updatedAt:now, method, dropoffId });
+      M.tx.push({ txId:'TX'+Date.now()+'R', memberId:m.memberId, type:'redeem', wasteName:'แลก: '+r.name, quantity:'', unit:'', points:-r.points, staffId:'', note:redeemId, photo:'', createdAt:now });
+      return { redeemId, rewardId:r.rewardId, rewardName:r.name, points:r.points, balance:m.points, method, stock:hasStock ? r.stock : '' };
     }
-    case 'adminRedemptions': {
-      needStaff(true); const w = p.status || '';
-      return M.redemptions.filter(r => w==='open' ? (r.status==='pending'||r.status==='preparing') : (!w || r.status===w)).slice().reverse()
-        .map(r => ({ ...r, memberName:(M.members.find(m=>m.memberId===r.memberId)||{}).name||'' }));
+    case 'logout': return true;
+
+    /* ---------- เจ้าหน้าที่ ---------- */
+    case 'staffLogin': {
+      const s = M.staff.find(x => x.username === String(p.username||'').trim().toLowerCase());
+      if(!s || !s.active || s.password !== p.password) err('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+      return { token:issue('staff', s.staffId, s.pv), staff:sView(s) };
     }
+    case 'staffFindMember': {
+      needStaff(); const q = String(p.query||'').trim(); let m;
+      if(/^yd-?\d+$/i.test(q)) m = M.members.find(x => x.memberId === normId(q));
+      else { const d = q.replace(/\D/g,''); if(d.length >= 9){ const ph = normPhone(d); m = M.members.find(x => x.phone === ph); } }
+      if(!m) err('ไม่พบสมาชิก ลองตรวจเบอร์โทรหรือรหัสสมาชิกอีกครั้ง'); return mView(m);
+    }
+    case 'staffRegister': { needStaff(); return mView(newMember(p.name, p.phone, p.pin, p.consent, 'กรุณายืนยันว่าสมาชิกยินยอมให้เก็บข้อมูล')); }
+    case 'staffUploadPhoto': {
+      const st = needStaff();
+      if(!/^data:image\/(jpeg|png|webp);base64,/.test(String(p.photo||''))) err('ไฟล์รูปไม่ถูกต้อง');
+      const id = 'PH' + Date.now() + Math.random().toString(36).slice(2,6); M.photos[id] = st.staffId;
+      return { photoId:id };
+    }
+    case 'staffRecordWaste': {
+      const st = needStaff(); const memberId = normId(p.memberId);
+      const items = Array.isArray(p.items) ? p.items : [];
+      if(!items.length) err('กรุณาเพิ่มรายการขยะอย่างน้อย 1 รายการ');
+      const lines = items.map(it => {
+        const t = M.wasteTypes.find(x => x.wasteTypeId === it.wasteTypeId); if(!t || !t.active) err('ประเภทขยะไม่ถูกต้อง');
+        const q = r2(it.quantity); if(!(q > 0) || q > 1000) err(`จำนวนหรือน้ำหนักของ "${t.name}" ไม่ถูกต้อง`);
+        return { t, q, pts:rp(q * t.pointsPerUnit) };
+      });
+      let photo = '';
+      if(p.photoId){ if(M.photos[p.photoId] !== st.staffId) err('ไม่พบรูปยืนยัน กรุณาถ่ายรูปใหม่'); photo = p.photoId; }
+      else if(p.photo){ if(!/^data:image\//.test(String(p.photo))) err('ไฟล์รูปไม่ถูกต้อง'); photo = 'PH' + Date.now(); }
+      else if(M.settings.requirePhoto === 'true') err('กรุณาถ่ายรูปยืนยันก่อนบันทึก');
+      const m = M.members.find(x => x.memberId === memberId); if(!m) err('ไม่พบสมาชิก');
+      let bal = m.points, kg = m.totalKg, earned = 0; const now = new Date().toISOString(), stamp = Date.now();
+      const txs = lines.map((l, i) => {
+        bal = rp(bal + l.pts); earned = rp(earned + l.pts); if(/กก|kg/i.test(l.t.unit)) kg += l.q;
+        return { txId:'TX'+stamp+i, memberId, type:'earn', wasteTypeId:l.t.wasteTypeId, wasteName:l.t.name, quantity:l.q, unit:l.t.unit, points:l.pts, balanceAfter:bal, photo, dropoffId:String(p.dropoffId||''), staffId:st.staffId, note:String(p.note||'').trim(), createdAt:now, saleValue:r2(l.q * (l.t.salePrice || 0)) };
+      });
+      M.tx.push(...txs); m.points = bal; m.totalKg = r2(kg);
+      if(p.photoId) delete M.photos[p.photoId];
+      return { memberId, name:m.name, earned, balance:bal, lines:lines.map(l => ({ name:l.t.name, quantity:l.q, unit:l.t.unit, points:l.pts })), recent:txs.slice().reverse().map(recentView) };
+    }
+    case 'staffRecent': return recentList(needStaff());
+    case 'staffBootstrap': {
+      const st = needStaff();
+      if(st.role !== 'admin') return { staff:sView(st), recent:recentList(st) };
+      return { staff:sView(st), recent:recentList(st), summary:summary(), redemptions:redemptionList(''), rewards:M.rewards.slice().sort(bySort).map(rwView),
+        wasteTypes:M.wasteTypes.slice().sort(bySort).map(wtView), staffList:M.staff.map(sView), settings:adminSettings(), members:memberSearch('') };
+    }
+
+    /* ---------- แอดมิน ---------- */
+    case 'adminSummary': needStaff(true); return summary();
+    case 'adminRedemptions': needStaff(true); return redemptionList(String(p.status || ''));
     case 'adminUpdateRedemption': {
-      const st = needStaff(true); const red = M.redemptions.find(r => r.redeemId === p.redeemId); if(!red) err('ไม่พบคำขอแลกของ');
+      const st = needStaff(true);
       if(!STATUS[p.status]) err('สถานะไม่ถูกต้อง');
+      const note = String(p.note||'').trim();
+      if(p.status === 'cancelled' && !note) err('กรุณาใส่เหตุผลในการยกเลิก');
+      const red = M.redemptions.find(r => r.redeemId === p.redeemId); if(!red) err('ไม่พบคำขอแลกของ');
       if(red.status === 'cancelled') err('คำขอนี้ถูกยกเลิกและคืนแต้มไปแล้ว แก้ไขไม่ได้');
+      const now = new Date().toISOString();
       if(p.status === 'cancelled'){
-        if(!String(p.note||'').trim()) err('กรุณาใส่เหตุผลในการยกเลิก');
         const m = M.members.find(x => x.memberId === red.memberId); m.points = rp(m.points + red.points);
         const rw = M.rewards.find(x => x.rewardId === red.rewardId); if(rw && rw.stock !== '') rw.stock = Number(rw.stock) + 1;
-        M.tx.push({ txId:'C'+Date.now(), memberId:m.memberId, type:'refund', wasteName:'คืนแต้ม: '+red.rewardName, quantity:'', unit:'', points:red.points, staffId:st.staffId, note:red.redeemId+' '+p.note, createdAt:new Date().toISOString() });
+        M.tx.push({ txId:'TX'+Date.now()+'C', memberId:m.memberId, type:'refund', wasteName:'คืนแต้ม: '+red.rewardName, quantity:'', unit:'', points:red.points, staffId:st.staffId, note:red.redeemId+' '+note, photo:'', createdAt:now });
       }
-      red.status = p.status; red.statusNote = String(p.note||'').trim(); return true;
+      Object.assign(red, { status:p.status, statusNote:note, updatedAt:now });
+      return { list:redemptionList(String(p.filter || '')) };
     }
-    case 'logout': delete M.sessions[token]; return true;
-    case 'staffLogin': { const s = M.staff.find(x => x.username === String(p.username||'').trim().toLowerCase()); if(!s || !s.active || s.password !== p.password) err('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'); return { token:sess('staff', s.staffId), staff:sView(s) }; }
-    case 'staffFindMember': { needStaff(); const q = String(p.query||'').trim(); let m; if(/^yd-?\d+$/i.test(q)) m = M.members.find(x=>x.memberId===normId(q)); else { const d = q.replace(/\D/g,''); if(d.length>=9){ const ph = normPhone(d); m = M.members.find(x=>x.phone===ph); } } if(!m) err('ไม่พบสมาชิก ลองตรวจเบอร์โทรหรือรหัสสมาชิกอีกครั้ง'); return mView(m); }
-    case 'staffRegister': { needStaff(); return mView(newMember(p.name, p.phone, p.pin, p.consent)); }
-    case 'staffRecordWaste': {
-      const st = needStaff(); const m = M.members.find(x => x.memberId === normId(p.memberId)); if(!m) err('ไม่พบสมาชิก');
-      if(!p.items || !p.items.length) err('กรุณาเพิ่มรายการขยะอย่างน้อย 1 รายการ');
-      if(!p.photo && M.settings.requirePhoto === 'true') err('กรุณาถ่ายรูปยืนยันก่อนบันทึก');
-      let earned = 0; const lines = p.items.map(it => { const t = M.wasteTypes.find(x => x.wasteTypeId === it.wasteTypeId); const q = Math.round(Number(it.quantity)*100)/100; if(!t || !(q>0)) err('ข้อมูลขยะไม่ถูกต้อง'); const pts = rp(q*t.pointsPerUnit); earned = rp(earned + pts); if(/กก|kg/i.test(t.unit)) m.totalKg += q; M.tx.push({ txId:'T'+Date.now()+Math.random(), memberId:m.memberId, type:'earn', wasteName:t.name, quantity:q, unit:t.unit, points:pts, saleValue:Math.round(q*(t.salePrice||0)*100)/100, staffId:st.staffId, note:p.note||'', createdAt:new Date().toISOString(), photo:!!p.photo }); return { name:t.name, quantity:q, unit:t.unit, points:pts }; });
-      m.points = rp(m.points + earned); return { memberId:m.memberId, name:m.name, earned, balance:m.points, lines };
+    case 'adminWasteTypes': needStaff(true); return M.wasteTypes.slice().sort(bySort).map(wtView);
+    case 'adminSaveWasteType': {
+      needStaff(true);
+      const name = String(p.name||'').trim(); if(!name) err('กรุณาใส่ชื่อประเภทขยะ');
+      const rate = Number(p.pointsPerUnit); if(!(rate >= 0) || rate > 100000) err('แต้มต่อหน่วยไม่ถูกต้อง');
+      const sale = Number(p.salePrice); if(!(sale >= 0) || sale > 100000) err('ราคาขายต่อไม่ถูกต้อง');
+      let t = p.wasteTypeId ? M.wasteTypes.find(x => x.wasteTypeId === p.wasteTypeId) : null;
+      if(!t){ t = { wasteTypeId:nextId(M.wasteTypes.map(x=>x.wasteTypeId),'WT',2) }; M.wasteTypes.push(t); }
+      Object.assign(t, { name, unit:String(p.unit||'').trim() || 'กก.', pointsPerUnit:rate, description:String(p.description||'').trim(), active:!!p.active, sort:Number(p.sort)||99, salePrice:sale });
+      return Object.assign(wtView(t), { list:M.wasteTypes.slice().sort(bySort).map(wtView) });
     }
-    case 'staffRecent': { const st = needStaff(); return M.tx.filter(t => st.role==='admin' || t.staffId===st.staffId).slice().reverse().slice(0,30).map(t => ({ ...t, memberName:(M.members.find(m=>m.memberId===t.memberId)||{}).name||'', staffName:(M.staff.find(s=>s.staffId===t.staffId)||{}).displayName||'', photoUrl:'' })); }
-    case 'adminSummary': { needStaff(true); const today = new Date().toDateString(); return { members:M.members.length, totalKg:Math.round(M.members.reduce((a,m)=>a+m.totalKg,0)*100)/100, pointsIssued:rp(M.tx.filter(t=>t.type==='earn').reduce((a,t)=>a+t.points,0)), pointsOutstanding:rp(M.members.reduce((a,m)=>a+m.points,0)), todayRecords:M.tx.filter(t=>t.type==='earn' && new Date(t.createdAt).toDateString()===today).length, pendingRedemptions:M.redemptions.filter(r=>r.status==='pending'||r.status==='preparing').length, pointsPerBaht:Number(M.settings.pointsPerBaht), revenue:Math.round(M.tx.filter(t=>t.type==='earn').reduce((a,t)=>a+(t.saleValue||0),0)*100)/100, issuedValue:Math.round(M.tx.filter(t=>t.type==='earn').reduce((a,t)=>a+t.points,0)/Number(M.settings.pointsPerBaht)*100)/100, outstandingValue:Math.round(M.members.reduce((a,m)=>a+m.points,0)/Number(M.settings.pointsPerBaht)*100)/100 }; }
-    case 'adminWasteTypes': needStaff(true); return M.wasteTypes.slice().sort((a,b)=>a.sort-b.sort);
-    case 'adminSaveWasteType': { needStaff(true); if(!String(p.name||'').trim()) err('กรุณาใส่ชื่อประเภทขยะ'); const rate = Number(p.pointsPerUnit); if(!(rate>=0)) err('แต้มต่อหน่วยไม่ถูกต้อง'); let t = M.wasteTypes.find(x => x.wasteTypeId === p.wasteTypeId); if(!t){ t = { wasteTypeId:nextId(M.wasteTypes.map(x=>x.wasteTypeId),'WT',2) }; M.wasteTypes.push(t); } Object.assign(t, { name:p.name.trim(), unit:p.unit||'กก.', pointsPerUnit:rate, salePrice:Number(p.salePrice)||0, description:p.description||'', active:!!p.active, sort:Number(p.sort)||99 }); return { ...t }; }
-    case 'adminMembers': { needStaff(true); const q = String(p.q||'').toLowerCase(); return M.members.filter(m => !q || m.name.toLowerCase().includes(q) || m.memberId.toLowerCase().includes(q) || m.phone.includes(q.replace(/\D/g,'')||'§')).slice().reverse().map(m => ({ memberId:m.memberId, name:m.name, phone:m.phone, points:m.points, totalKg:Math.round(m.totalKg*100)/100, createdAt:m.createdAt, status:m.status })); }
-    case 'adminResetPin': { needStaff(true); checkPin(String(p.pin||'')); const m = M.members.find(x=>x.memberId===p.memberId); if(!m) err('ไม่พบสมาชิก'); m.pin = String(p.pin); return true; }
-    case 'adminAdjustPoints': { const st = needStaff(true); const d = rp(Number(p.delta)); if(!d) err('กรุณาใส่จำนวนแต้มที่ต้องการปรับ (เช่น 10 หรือ -10)'); if(!String(p.note||'').trim()) err('กรุณาใส่เหตุผลในการปรับแต้ม'); const m = M.members.find(x=>x.memberId===p.memberId); if(m.points + d < 0) err('แต้มคงเหลือจะติดลบ'); m.points = rp(m.points + d); M.tx.push({ txId:'A'+Date.now(), memberId:m.memberId, type:'adjust', wasteName:'ปรับแต้มโดยเจ้าหน้าที่', quantity:'', unit:'', points:d, staffId:st.staffId, note:p.note, createdAt:new Date().toISOString() }); return { balance:m.points }; }
-    case 'adminRewards': needStaff(true); return M.rewards.slice().sort((a,b)=>(a.sort||99)-(b.sort||99)).map(r => ({ rewardId:r.rewardId, name:r.name, category:r.category, points:r.points, cost:r.cost||0, description:r.description, images:r.imageUrls?r.imageUrls.split('\n'):[], stock:r.stock, active:!!r.active, sort:r.sort||99, kind:r.kind==='coupon'?'coupon':'item', sponsor:r.sponsor||'' }));
+    case 'adminMembers': needStaff(true); return memberSearch(p.q);
+    case 'adminResetPin': {
+      needStaff(true); checkPin(String(p.pin||''));
+      const m = M.members.find(x => x.memberId === normId(p.memberId)); if(!m) err('ไม่พบสมาชิก');
+      m.pin = String(p.pin); m.pv++; return true;
+    }
+    case 'adminAdjustPoints': {
+      const st = needStaff(true); const d = rp(Number(p.delta));
+      if(!d) err('กรุณาใส่จำนวนแต้มที่ต้องการปรับ (เช่น 10 หรือ -10)');
+      const note = String(p.note||'').trim(); if(!note) err('กรุณาใส่เหตุผลในการปรับแต้ม');
+      const m = M.members.find(x => x.memberId === normId(p.memberId)); if(!m) err('ไม่พบสมาชิก');
+      if(m.points + d < 0) err('แต้มคงเหลือจะติดลบ');
+      m.points = rp(m.points + d);
+      M.tx.push({ txId:'TX'+Date.now()+'A', memberId:m.memberId, type:'adjust', wasteName:'ปรับแต้มโดยเจ้าหน้าที่', quantity:'', unit:'', points:d, staffId:st.staffId, note, photo:'', createdAt:new Date().toISOString() });
+      return { balance:m.points, member:aView(m) };
+    }
+    case 'adminRewards': needStaff(true); return M.rewards.slice().sort(bySort).map(rwView);
     case 'adminSaveReward': {
       needStaff(true);
       if(!String(p.name||'').trim()) err('กรุณาใส่ชื่อของรางวัล');
+      if(!CAT[p.category]) err('กรุณาเลือกหมวดหมู่');
       const pts = rp(Number(p.points)); if(!(pts > 0)) err('แต้มที่ใช้แลกต้องมากกว่า 0');
+      const cost = Number(p.cost); if(!(cost >= 0)) err('ต้นทุนไม่ถูกต้อง');
+      const stock = String(p.stock ?? '').trim(); if(stock !== '' && !(Number(stock) >= 0)) err('จำนวนในสต็อกไม่ถูกต้อง');
       const imgs = (p.images||[]).concat(p.newPhotos||[]); if(imgs.length > 6) err('ใส่รูปได้สูงสุด 6 รูปต่อรายการ');
-      let r = M.rewards.find(x => x.rewardId === p.rewardId);
+      let r = p.rewardId ? M.rewards.find(x => x.rewardId === p.rewardId) : null;
       if(!r){ r = { rewardId:nextId(M.rewards.map(x=>x.rewardId),'RW',2) }; M.rewards.push(r); }
-      const stock = String(p.stock??'').trim();
-      Object.assign(r, { name:p.name.trim(), category:p.category, points:pts, cost:Number(p.cost)||0, description:p.description||'', imageUrls:imgs.join('\n'), stock:stock===''?'':Math.round(Number(stock)), active:!!p.active, sort:Number(p.sort)||99, kind:p.kind==='coupon'?'coupon':'item', sponsor:String(p.sponsor||'').trim() });
-      return { rewardId:r.rewardId };
+      Object.assign(r, { name:p.name.trim(), category:p.category, points:pts, cost, description:String(p.description||'').trim(), imageUrls:imgs.join('\n'), stock:stock === '' ? '' : Math.round(Number(stock)), active:!!p.active, sort:Number(p.sort)||99, kind:p.kind === 'coupon' ? 'coupon' : 'item', sponsor:String(p.sponsor||'').trim() });
+      return { saved:rwView(r), list:M.rewards.slice().sort(bySort).map(rwView) };
     }
     case 'adminStaff': needStaff(true); return M.staff.map(sView);
-    case 'adminSaveStaff': { const me = needStaff(true); const u = String(p.username||'').trim().toLowerCase(); if(!/^[a-z0-9_.]{3,30}$/.test(u)) err('ชื่อผู้ใช้ใช้ได้เฉพาะ a-z 0-9 _ . ยาว 3-30 ตัว'); if(p.password && p.password.length<8) err('รหัสผ่านต้องยาวอย่างน้อย 8 ตัวอักษร'); let s = M.staff.find(x=>x.staffId===p.staffId); if(M.staff.some(x=>x.username===u && x!==s)) err('ชื่อผู้ใช้นี้มีอยู่แล้ว'); if(!s){ if(!p.password) err('กรุณาตั้งรหัสผ่านให้บัญชีใหม่'); s = { staffId:nextId(M.staff.map(x=>x.staffId),'ST',2) }; M.staff.push(s); } else if(s===me && (!p.active || p.role!=='admin')) err('ไม่สามารถปิดใช้งานหรือลดสิทธิ์บัญชีตัวเองได้'); Object.assign(s, { username:u, displayName:p.displayName||u, role:p.role==='admin'?'admin':'staff', active:!!p.active }); if(p.password) s.password = p.password; return sView(s); }
-    case 'adminSettings': needStaff(true); return { ...M.settings };
-    case 'adminSaveSettings': needStaff(true); ['facebookPage','email','dataController','dataControllerAddress','brandFacebook','brandLine'].forEach(k => { if(k in p) M.settings[k] = String(p[k]).trim(); }); M.settings.requirePhoto = String(!!p.requirePhoto); if('postMinPoints' in p) M.settings.postMinPoints = String(Math.max(0, rp(Number(p.postMinPoints)||0))); return true;
+    case 'adminSaveStaff': {
+      const me = needStaff(true); const u = String(p.username||'').trim().toLowerCase();
+      if(!/^[a-z0-9_.]{3,30}$/.test(u)) err('ชื่อผู้ใช้ใช้ได้เฉพาะ a-z 0-9 _ . ยาว 3-30 ตัว');
+      const pw = String(p.password || ''); if(pw && pw.length < 8) err('รหัสผ่านต้องยาวอย่างน้อย 8 ตัวอักษร');
+      let s = p.staffId ? M.staff.find(x => x.staffId === p.staffId) : null;
+      if(M.staff.some(x => x.username === u && x !== s)) err('ชื่อผู้ใช้นี้มีอยู่แล้ว');
+      const role = p.role === 'admin' ? 'admin' : 'staff';
+      if(s){ if(s === me && (!p.active || role !== 'admin')) err('ไม่สามารถปิดใช้งานหรือลดสิทธิ์บัญชีตัวเองได้'); }
+      else { if(!pw) err('กรุณาตั้งรหัสผ่านให้บัญชีใหม่'); s = { staffId:nextId(M.staff.map(x=>x.staffId),'ST',2), pv:0 }; M.staff.push(s); }
+      Object.assign(s, { username:u, displayName:String(p.displayName||'').trim() || u, role, active:!!p.active });
+      if(pw){ s.password = pw; s.pv++; }
+      const out = Object.assign(sView(s), { list:M.staff.map(sView) });
+      if(pw && s === me) out.token = issue('staff', s.staffId, s.pv);   // เปลี่ยนรหัสผ่านตัวเอง: ได้บัตรผ่านใหม่
+      return out;
+    }
+    case 'adminSettings': needStaff(true); return adminSettings();
+    case 'adminSaveSettings': {
+      needStaff(true);
+      EDIT_KEYS.forEach(k => { if(k in p) M.settings[k] = k === 'requirePhoto' ? String(!!p[k]) : k === 'postMinPoints' ? String(Math.max(0, rp(Number(p[k]) || 0))) : String(p[k]).trim(); });
+      return { settings:publicSettings(), admin:adminSettings() };
+    }
     case 'adminUploadLogo': needStaff(true); M.settings.logoUrl = p.photo; return { logoUrl:p.photo };
   }
   err('ไม่รู้จักคำสั่งนี้');
 }
 
 /* =========================================================
- *  เริ่มต้น
+ *  เริ่มต้น: แสดงหน้าทันทีจากข้อมูลที่จำไว้ในเครื่อง (หรือค่าเริ่มต้น)
+ *  แล้วขอข้อมูลล่าสุดเบื้องหลัง ไม่ต้องรอระบบหลังบ้านก่อนเห็นหน้าเว็บ
  * ========================================================= */
-async function refreshPublic(){ S.pub = await api('publicData'); }
-(async function init(){
+(function init(){
   if(DEMO) $('#demoBar').hidden = false;
-  try{ await refreshPublic(); }
-  catch(e){ view(`<div class="notice err">โหลดข้อมูลไม่ได้: ${esc(e.message)}</div>`); return; }
+  const cached = loadJSON(PUB_KEY);
+  if(cached && cached.settings && ['wasteTypes','rewards','dropoffs'].every(k => Array.isArray(cached[k]))){ S.pub = cached; S.pubLoaded = true; }
+  else { S.pub = DEFAULT_PUB(); S.pubLoaded = false; }
   route();
+  refreshPublic().catch(()=>{});
+  if(S.mtoken) setTimeout(() => loadQR().catch(()=>{}), 1200);   // เตรียมตัวสร้าง QR ของบัตรสมาชิกไว้ล่วงหน้า
 })();
 </script>
 </body>
