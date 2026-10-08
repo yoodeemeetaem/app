@@ -1,0 +1,1431 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>อยู่ดีมีแต้ม</title>
+<meta name="description" content="อยู่ดีมีแต้ม · เล็กๆ ก็มีแต้ม นำขยะรีไซเคิลที่แยกแล้วมาสะสมแต้ม แลกของจากร้านในชุมชน">
+<link rel="icon" id="favicon" href="data:,">
+<meta name="theme-color" content="#1F6B4F">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  /* Design specs: อยู่ดีมีแต้ม (ผสมโทนจากต้นแบบ Canva) */
+  --forest:#1F6B4F;      /* เขียวป่า จากต้นแบบ Canva — ปุ่มหลัก/หัวข้อ */
+  --forest-2:#17553F;
+  --emerald:#1B9C85;     /* Eco Emerald — ใช้ตกแต่งหรือตัวใหญ่ 24px ขึ้นไปเท่านั้น */
+  --emerald-text:#127A68;/* มรกตปรับเข้ม สำหรับตัวหนังสือขนาดปกติ (5.24:1 บนขาว) */
+  --blue:#00A8CC;        /* Taling Blue (ฟ้าคูคลอง) — ภาพประกอบ ไอคอนใหญ่ */
+  --blue-dark:#006B8A;   /* ฟ้าปรับเข้ม สำหรับปุ่มตัวขาว (6.05:1) */
+  --amber:#FFB000;       /* Reward Amber (เหลืองแต้ม) */
+  --amber-soft:#FFF4D6;
+  --ink:#212529;         /* Dark Slate (ตัวอักษร) */
+  --muted:#56655D;
+  --bg:#F8F9FA;          /* Light Background */
+  --mint:#E7F3EC;
+  --mint-2:#D6EBDF;
+  --cream:#F7F3E2;
+  --line:#DCE8E1;
+  --card:#FFFFFF;
+  --danger:#B4400E;
+  --danger-soft:#FDECE4;
+  --radius:20px;
+  --shadow:0 1px 2px rgba(23,85,63,.06),0 8px 24px rgba(23,85,63,.06);
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html{scroll-behavior:smooth}
+body{
+  margin:0;font-family:'Sarabun',system-ui,sans-serif;font-size:17px;line-height:1.65;color:var(--ink);
+  background:var(--bg) linear-gradient(160deg,#E5F2E9 0%,#F1F5EA 48%,#F7F3E2 100%);
+  min-height:100vh;display:flex;flex-direction:column;
+}
+h1,h2,h3,h4,.kanit,.btn,.brand-name,.chip,.tab{font-family:'Kanit',system-ui,sans-serif}
+h1,h2,h3{color:var(--forest-2);line-height:1.3;margin:0 0 .4em}
+h2{font-size:1.35rem}
+h3{font-size:1.12rem}
+a{color:var(--forest)}
+img{max-width:100%;display:block}
+.nowrap{white-space:nowrap}
+.muted{color:var(--muted)}
+.small{font-size:.9rem}
+.wrap{width:100%;max-width:1080px;margin:0 auto;padding:0 16px}
+
+/* ---------- Top bar ---------- */
+.topbar{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30}
+.topbar .wrap{display:flex;align-items:center;gap:12px;min-height:68px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;flex:1;min-width:0}
+.brand-logo{width:46px;height:46px;border-radius:14px;overflow:hidden;flex:none;display:grid;place-items:center;background:var(--mint)}
+.brand-logo img{width:100%;height:100%;object-fit:cover}
+.brand-name{font-weight:700;font-size:1.25rem;color:var(--forest-2);line-height:1.1}
+.brand-sub{font-size:.875rem;color:var(--muted)}
+.navlinks{display:none;gap:6px}
+.navlinks a{font-family:'Kanit';text-decoration:none;color:var(--forest-2);padding:9px 14px;border-radius:12px;background:var(--mint);font-size:.95rem;white-space:nowrap}
+.navlinks a.active{background:var(--forest);color:#fff}
+.menu-btn{width:48px;height:48px;border-radius:14px;border:0;background:var(--mint);color:var(--forest-2);display:grid;place-items:center;cursor:pointer}
+.staff-chip{display:none;font-family:'Kanit';font-size:.875rem;background:var(--amber-soft);color:#7A4B00;padding:6px 10px;border-radius:999px;white-space:nowrap}
+.staff-chip.on{display:inline-flex;align-items:center;gap:4px}
+@media (min-width:960px){.navlinks{display:flex}.menu-btn{display:none}}
+
+/* ---------- Drawer ---------- */
+.drawer-bg{position:fixed;inset:0;background:rgba(15,40,30,.35);opacity:0;pointer-events:none;transition:.2s;z-index:40}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(86vw,340px);background:#fff;z-index:41;transform:translateX(100%);transition:transform .25s;padding:18px 16px;display:flex;flex-direction:column;gap:6px;overflow:auto}
+body.menu-open .drawer-bg{opacity:1;pointer-events:auto}
+body.menu-open .drawer{transform:none}
+.drawer a{display:flex;align-items:center;gap:12px;font-family:'Kanit';font-size:1.05rem;text-decoration:none;color:var(--forest-2);padding:13px 14px;border-radius:14px}
+.drawer a.active{background:var(--mint)}
+.drawer .sep{height:1px;background:var(--line);margin:8px 0}
+.drawer-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+
+/* ---------- Demo bar ---------- */
+.demo{background:#FFF8E1;border-bottom:1px solid #F3DF9C;color:#6B4A00;font-size:.88rem}
+.demo .wrap{padding-top:8px;padding-bottom:8px}
+
+/* ---------- Layout ---------- */
+main{flex:1;padding:22px 0 40px}
+section{margin-bottom:22px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.card + .card{margin-top:14px}
+.grid3{display:grid;gap:14px;grid-template-columns:1fr}
+.grid2{display:grid;gap:14px;grid-template-columns:1fr}
+@media (min-width:640px){.reward-img{aspect-ratio:4/3}.grid3{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:900px){.grid3{grid-template-columns:repeat(3,1fr)}}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+.sec-head h2{margin:0}
+
+/* ---------- Hero ---------- */
+.hero{position:relative;overflow:hidden;background:linear-gradient(160deg,#F4FAF6 0%,#EAF4EC 60%,#F6F2DF 100%);border:1px solid var(--line);border-radius:28px;padding:28px 20px}
+.hero-title{font-size:clamp(2.4rem,9vw,3.6rem);font-weight:700;color:var(--forest-2);margin:10px 0 6px;letter-spacing:-.5px}
+.hero-title .pt{color:var(--emerald)}
+.hero-lead{font-family:'Kanit';font-weight:600;font-size:clamp(1.25rem,4.6vw,1.6rem);color:var(--forest);margin:0 0 8px}
+.hero-desc{max-width:46ch;color:#2F3B35;margin:0;font-size:1.06rem}
+.hero-desc strong{color:var(--forest-2)}
+.hero-deco{position:absolute;right:-70px;top:-70px;opacity:.28;pointer-events:none}
+.hero > *:not(.hero-deco){position:relative}
+.pill{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-family:'Kanit';font-size:.875rem;color:var(--forest)}
+@media (min-width:768px){.hero{padding:44px 44px}}
+@media (max-width:759px){
+  .hero{padding:24px 18px}
+}
+
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:10px 20px;border-radius:14px;border:0;font-size:1rem;font-weight:500;text-decoration:none;cursor:pointer;transition:transform .05s,filter .15s;text-align:center;line-height:1.3}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn-primary{background:var(--forest);color:#fff}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-amber{background:var(--amber);color:#3D2A00}
+.btn-blue{background:var(--blue-dark);color:#fff}
+.btn-soft{background:var(--mint);color:var(--forest-2)}
+.btn-ghost{background:transparent;color:var(--forest-2);border:1.5px solid var(--line)}
+.btn-danger{background:var(--danger-soft);color:var(--danger)}
+.btn-lg{min-height:60px;font-size:1.08rem;border-radius:18px;padding:12px 22px}
+.btn-block{width:100%}
+.btn-sm{min-height:38px;padding:6px 12px;font-size:.9rem;border-radius:11px}
+.actions{display:grid;gap:12px;grid-template-columns:1fr}
+@media (min-width:760px){.actions{grid-template-columns:repeat(3,1fr)}}
+
+/* ---------- Rewards ---------- */
+.reward{display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+.reward-img{aspect-ratio:16/9;display:grid;place-items:center;position:relative}
+.reward-img img{width:100%;height:100%;object-fit:cover}
+.reward-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px;flex:1}
+.reward-name{font-family:'Kanit';font-weight:600;font-size:1.1rem;color:var(--forest-2);line-height:1.3}
+.reward-desc{color:var(--muted);font-size:.95rem;flex:1}
+.pts{display:inline-flex;align-items:baseline;gap:4px;background:var(--amber-soft);color:#7A4B00;border-radius:999px;padding:4px 12px;font-family:'Kanit';font-weight:600;align-self:flex-start}
+.pts b{font-size:1.15rem;color:#5C3A00}
+.chip{display:inline-block;font-size:.875rem;padding:3px 10px;border-radius:999px;background:var(--mint);color:var(--forest)}
+.rsum{display:flex;gap:14px;align-items:center}
+.rsum .reward-img{width:96px;flex:none;aspect-ratio:1/1;border-radius:16px;overflow:hidden}
+.rsum .reward-img svg{width:56px;height:56px}
+.bal{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;font-family:'Kanit'}
+.bal b{font-size:1.25rem;color:var(--forest-2)}
+.bal.last{border-top:1px dashed var(--line);margin-top:6px;padding-top:12px}
+.bal.last b{font-size:1.5rem;color:#5C3A00}
+.methods{display:grid;gap:10px;margin:6px 0 4px}
+.method{display:flex;gap:12px;align-items:flex-start;border:1.5px solid var(--line);border-radius:16px;padding:12px 14px;cursor:pointer;background:#fff}
+.method input{width:22px;height:22px;min-height:0;margin-top:3px;accent-color:var(--forest);flex:none}
+.method > span{display:flex;flex-direction:column;line-height:1.4}
+.method:has(input:checked){border-color:var(--forest);background:var(--mint)}
+.method.off{opacity:.5;cursor:not-allowed}
+.coupon{font-family:'Kanit';font-size:2rem;font-weight:700;letter-spacing:2px;border:2px dashed var(--amber);border-radius:16px;padding:8px 22px;display:inline-block;background:var(--amber-soft);color:#5C3A00;margin:6px 0}
+.chiprow{display:flex;gap:6px;flex-wrap:wrap}
+.rw-row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.rw-row:last-child{border-bottom:0}
+.rw-thumb{width:64px;height:64px;border-radius:14px;overflow:hidden;flex:none}
+.rw-thumb .reward-img{width:100%;height:100%;aspect-ratio:auto}
+.rw-thumb img{width:100%;height:100%;object-fit:cover}
+.rw-thumb svg{width:40px;height:40px}
+.rw-row.off{opacity:.55}
+.imgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px;margin-top:8px}
+.imgs .im{position:relative;aspect-ratio:1/1;border-radius:14px;overflow:hidden;border:1.5px solid var(--line);background:#F4F7F5}
+.imgs .im img{width:100%;height:100%;object-fit:cover}
+.imgs .im .x{position:absolute;top:4px;right:4px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:1rem;cursor:pointer}
+.imgs .im .cover{position:absolute;left:4px;bottom:4px;font-size:.875rem;font-family:'Kanit';background:var(--forest);color:#fff;border-radius:8px;padding:1px 6px}
+.imgs .im .mk{position:absolute;left:4px;bottom:4px;font-size:.875rem;font-family:'Kanit';background:rgba(255,255,255,.9);color:var(--forest-2);border:0;border-radius:8px;padding:2px 6px;cursor:pointer}
+.imgs .add{display:grid;place-items:center;aspect-ratio:1/1;border-radius:14px;border:2px dashed var(--mint-2);color:var(--forest);font-family:'Kanit';font-size:.875rem;text-align:center;cursor:pointer;background:#FBFDFB}
+.gallery{display:flex;gap:8px;margin-top:10px;overflow-x:auto}
+.gallery button{flex:none;width:64px;height:64px;border-radius:12px;overflow:hidden;border:2px solid transparent;padding:0;cursor:pointer;background:none}
+.gallery button.on{border-color:var(--forest)}
+.gallery img{width:100%;height:100%;object-fit:cover}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chips button{font-family:'Kanit';border:1.5px solid var(--line);background:#fff;color:var(--forest-2);border-radius:999px;padding:8px 14px;font-size:.92rem;cursor:pointer;min-height:42px}
+.chips button.on{background:var(--forest);border-color:var(--forest);color:#fff}
+
+/* ---------- Notices ---------- */
+.notice{border-radius:16px;padding:14px 16px;background:var(--mint);color:var(--forest-2);font-size:.95rem}
+.notice.amber{background:var(--amber-soft);color:#6B4A00}
+.notice.err{background:var(--danger-soft);color:var(--danger)}
+
+/* ---------- Steps ---------- */
+.steps{counter-reset:s;display:grid;gap:12px}
+.step{display:flex;gap:14px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px 16px}
+.step::before{counter-increment:s;content:counter(s);flex:none;width:38px;height:38px;border-radius:12px;background:var(--forest);color:#fff;display:grid;place-items:center;font-family:'Kanit';font-weight:600;font-size:1.1rem}
+.step h3{margin:2px 0 2px;font-size:1.05rem}
+.step p{margin:0;color:var(--muted);font-size:.95rem}
+
+/* ---------- Tables / lists ---------- */
+.rate{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px dashed var(--line)}
+.rate:last-child{border-bottom:0}
+.rate .nm{font-family:'Kanit';font-weight:500}
+.rate .ds{font-size:.88rem;color:var(--muted)}
+.list-item{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.list-item:last-child{border-bottom:0}
+.plus{font-family:'Kanit';font-weight:600;color:var(--emerald-text);white-space:nowrap}
+.minus{font-family:'Kanit';font-weight:600;color:var(--danger);white-space:nowrap}
+.tbl{width:100%;border-collapse:collapse;font-size:.95rem}
+.tbl th{text-align:left;font-family:'Kanit';font-weight:500;color:var(--muted);font-size:.875rem;padding:8px 6px;border-bottom:1px solid var(--line)}
+.tbl td{padding:10px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl-wrap{overflow-x:auto}
+
+/* ---------- Forms ---------- */
+label.f{display:block;font-family:'Kanit';font-weight:500;color:var(--forest-2);margin:12px 0 6px;font-size:.98rem}
+input,select,textarea{font:inherit;font-size:1.05rem;width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:14px;background:#fff;color:var(--ink);min-height:50px}
+input:focus,select:focus,textarea:focus{outline:3px solid rgba(27,156,133,.25);border-color:var(--emerald)}
+.check{display:flex;gap:10px;align-items:flex-start;margin:14px 0;font-size:.93rem;color:#33413A}
+.check input{width:22px;height:22px;min-height:0;flex:none;margin-top:2px;accent-color:var(--forest)}
+.row{display:flex;gap:10px;align-items:flex-end}
+.row > *{flex:1}
+.row > .btn{flex:none}
+.hint{font-size:.875rem;color:var(--muted);margin-top:4px}
+.tabs{display:flex;gap:6px;background:var(--mint);padding:5px;border-radius:16px;margin-bottom:16px;overflow-x:auto}
+.tab{flex:1;border:0;background:transparent;color:var(--forest-2);padding:10px 14px;border-radius:12px;font-size:.98rem;cursor:pointer;white-space:nowrap;min-height:44px}
+.tab.on{background:#fff;box-shadow:var(--shadow);font-weight:600}
+
+/* ---------- Member card ---------- */
+.mcard{border-radius:24px;padding:20px;color:#fff;background:radial-gradient(circle at 100% 0%,rgba(255,176,0,.22),transparent 45%),linear-gradient(145deg,#1F6B4F 0%,#17553F 55%,#13463A 100%);box-shadow:0 12px 30px rgba(23,85,63,.25);max-width:520px}
+.mc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.mc-label{font-size:.875rem;opacity:.85}
+.mc-name{font-family:'Kanit';font-size:1.35rem;font-weight:600;line-height:1.25}
+.mc-body{display:flex;gap:16px;align-items:center;margin-top:16px}
+.mc-qr{background:#fff;border-radius:14px;padding:8px;flex:none;width:148px;height:148px;display:grid;place-items:center;color:var(--ink);font-family:'Kanit';font-weight:600}
+.mc-qr img,.mc-qr canvas{width:132px !important;height:132px !important}
+.mc-id{font-family:'Kanit';font-size:1.45rem;font-weight:600;letter-spacing:1px}
+.mc-points{font-family:'Kanit';font-size:2.5rem;font-weight:700;color:var(--amber);line-height:1.1}
+.mc-points span{font-size:1rem;color:#fff;font-weight:500}
+.mc-foot{margin-top:14px;font-size:.875rem;opacity:.85;border-top:1px solid rgba(255,255,255,.18);padding-top:10px}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px 16px}
+.stat .v{font-family:'Kanit';font-size:1.6rem;font-weight:600;color:var(--forest-2);line-height:1.2}
+.stat .k{font-size:.88rem;color:var(--muted)}
+@media (min-width:760px){.stats.four{grid-template-columns:repeat(4,1fr)}}
+
+/* ---------- Staff ---------- */
+.found{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--mint);border-radius:16px;padding:14px 16px;margin-top:12px}
+.found .nm{font-family:'Kanit';font-weight:600;font-size:1.1rem;color:var(--forest-2)}
+.line-row{display:grid;grid-template-columns:1fr 110px 44px;gap:8px;align-items:center;margin-bottom:10px}
+.line-row .lp{grid-column:1/-1;font-size:.88rem;color:var(--muted);margin-top:-4px}
+.icon-btn{width:44px;height:50px;border-radius:12px;border:1.5px solid var(--line);background:#fff;color:var(--danger);cursor:pointer;font-size:1.2rem}
+.total{display:flex;justify-content:space-between;align-items:center;background:var(--amber-soft);border-radius:16px;padding:14px 16px;margin-top:8px;font-family:'Kanit'}
+.total b{font-size:1.6rem;color:#5C3A00}
+.photo-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:2px dashed var(--mint-2);border-radius:18px;padding:22px;text-align:center;cursor:pointer;color:var(--forest);font-family:'Kanit';background:#FBFDFB}
+.photo-drop input{display:none}
+.photo-prev{border-radius:16px;max-height:280px;object-fit:cover;width:100%;margin-top:10px}
+#scanner{margin-top:10px;border-radius:16px;overflow:hidden}
+.success{text-align:center;padding:28px 20px}
+.success .big{font-family:'Kanit';font-size:3rem;font-weight:700;color:var(--emerald);line-height:1}
+
+/* ---------- Footer ---------- */
+footer{background:#fff;border-top:1px solid var(--line);padding:18px 0;margin-top:auto}
+footer .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.socials{display:flex;gap:8px}
+.line{display:inline-grid;place-items:center;width:42px;height:42px;border-radius:12px;background:#06C755;color:#fff;text-decoration:none;font-family:'Kanit';font-weight:700;font-size:.875rem}
+.line[hidden]{display:none}
+.fb{display:inline-grid;place-items:center;width:42px;height:42px;border-radius:12px;background:#1877F2;color:#fff;text-decoration:none}
+
+/* ---------- Toast / loading ---------- */
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 18px;border-radius:14px;opacity:0;pointer-events:none;transition:.25s;z-index:60;max-width:calc(100vw - 32px);font-size:.95rem;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%)}
+#toast.err{background:var(--danger)}
+.skeleton{height:120px;border-radius:var(--radius);background:linear-gradient(90deg,#eef4f0,#f7faf8,#eef4f0);background-size:200% 100%;animation:sk 1.2s infinite}
+@keyframes sk{to{background-position:-200% 0}}
+.spin{width:18px;height:18px;border:2.5px solid currentColor;border-right-color:transparent;border-radius:50%;animation:rot .7s linear infinite;display:inline-block}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+/* ---------- การเข้าถึง ---------- */
+a:focus-visible,button:focus-visible,.btn:focus-visible,.tab:focus-visible,.method:focus-within,.chips button:focus-visible,summary:focus-visible{outline:3px solid var(--forest);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+
+@media print{
+  body{background:#fff}
+  .topbar,.demo,footer,.drawer,.drawer-bg,.no-print{display:none !important}
+  main{padding:0}
+  #toast,.mc-pts-wrap{display:none !important}
+  /* บัตรขนาด ID-1 (เท่าบัตรเครดิต) 85.6 × 54 มม. */
+  .mcard{-webkit-print-color-adjust:exact;print-color-adjust:exact;box-shadow:none;width:85.6mm;height:53.98mm;max-width:none;padding:3.5mm 4mm;border-radius:3mm;overflow:hidden}
+  .mc-top svg{width:8mm;height:8mm}
+  .mc-label{font-size:6.5pt}
+  .mc-name{font-size:10.5pt}
+  .mc-body{margin-top:1.5mm;gap:4mm}
+  .mc-qr{width:29mm;height:29mm;padding:1.5mm;border-radius:2mm}
+  .mc-qr img,.mc-qr canvas{width:26mm !important;height:26mm !important}
+  .mc-id{font-size:13pt}
+  .mc-foot{display:none}
+  .mc-print-note{display:block !important;font-size:6.5pt;margin-top:2mm;opacity:.9}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#/">
+      <span class="brand-logo" id="brandLogo"></span>
+      <span style="min-width:0">
+        <span class="brand-name">อยู่ดีมีแต้ม</span><br>
+        <span class="brand-sub">เล็กๆ ก็มีแต้ม</span>
+      </span>
+    </a>
+    <span class="staff-chip" id="staffChip"></span>
+    <nav class="navlinks" id="navlinks"></nav>
+    <button class="menu-btn" id="menuBtn" aria-label="เปิดเมนู">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+  </div>
+</header>
+<div class="demo" id="demoBar" hidden><div class="wrap">
+  <b>โหมดทดลอง</b> — ข้อมูลไม่ถูกบันทึกจริง ·
+  สมาชิกทดลอง <span class="nowrap">081-234-5678</span> PIN <span class="nowrap">246810</span> ·
+  เจ้าหน้าที่ <span class="nowrap">admin / demo1234</span>
+</div></div>
+
+<main><div class="wrap" id="app"><div class="skeleton"></div></div></main>
+
+<footer>
+  <div class="wrap">
+    <span class="small">©2026 <b>อยู่ดีมีแต้ม</b> · ริเริ่มโดย <b>ตลิ่งชันอยากอยู่ดี</b><br><a href="#/privacy">นโยบายความเป็นส่วนตัว</a></span>
+    <span class="socials">
+      <a class="line" id="footerLine" href="#" target="_blank" rel="noopener" aria-label="LINE อยู่ดีมีแต้ม" hidden>LINE</a>
+      <a class="fb" id="footerFb" href="#" target="_blank" rel="noopener" aria-label="Facebook">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 8h3V4h-3c-2.8 0-5 2.2-5 5v2H7v4h2v9h4v-9h3l1-4h-4V9c0-.6.4-1 1-1z"/></svg>
+      </a>
+    </span>
+  </div>
+</footer>
+
+<div class="drawer-bg" id="drawerBg"></div>
+<aside class="drawer" id="drawer" aria-label="เมนู">
+  <div class="drawer-head">
+    <span class="brand-name">เมนู</span>
+    <button class="menu-btn" id="closeBtn" aria-label="ปิดเมนู" style="display:grid">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div id="drawerLinks"></div>
+</aside>
+<div id="toast" role="status"></div>
+
+<script>
+/* =========================================================
+ *  ตั้งค่า: วาง Web app URL จาก Apps Script ระหว่าง ' '
+ *  ถ้าเว้นว่างไว้ = โหมดทดลอง (ข้อมูลไม่ถูกบันทึกจริง)
+ * ========================================================= */
+const API_URL = '';
+
+const DEMO = !API_URL;
+const CAT = { household:'สินค้าจำเป็นในครัวเรือน', local:'สินค้าและบริการในตลิ่งชัน', green:'สินค้ากรีนและอัปไซเคิล' };
+const STATUS = {
+  pending:['รอดำเนินการ','#FFF4D6','#7A4B00'],
+  preparing:['กำลังเตรียมของ','#E6F6FA','#006F87'],
+  shipped:['จัดส่งแล้ว','#E7F3EC','#17553F'],
+  done:['ได้รับของแล้ว','#17553F','#FFFFFF'],
+  cancelled:['ยกเลิก · คืนแต้มแล้ว','#FDECE4','#B4400E']
+};
+const METHOD = { coupon:'คูปอง', pickup:'รับที่จุดรับขยะ', volunteer:'อาสาสมัครส่งถึงบ้าน', post:'ส่งทางขนส่ง' };
+function dropName(id){ return ((S.pub && S.pub.dropoffs.find(d => d.id === id)) || {}).name || ''; }
+function stChip(s){ const x = STATUS[s] || [s,'#EEE','#333']; return `<span class="chip" style="background:${x[1]};color:${x[2]};white-space:nowrap">${x[0]}</span>`; }
+const NAV = [
+  ['', 'หน้าแรก', 'home'],
+  ['member', 'ข้อมูลสมาชิก', 'user'],
+  ['rewards', 'แลกของรางวัล', 'gift'],
+  ['dropoff', 'จุดรับขยะ', 'pin'],
+  ['contact', 'ติดต่อเรา', 'chat']
+];
+
+/* ---------- storage ---------- */
+function load(k){ try{ return localStorage.getItem(k) || ''; }catch(e){ return ''; } }
+function save(k,v){ try{ v ? localStorage.setItem(k,v) : localStorage.removeItem(k); }catch(e){} }
+function loadJSON(k){ try{ return JSON.parse(load(k) || 'null'); }catch(e){ return null; } }
+
+const S = { pub:null, mtoken:load('yd_mtoken'), stoken:load('yd_stoken'), staff:loadJSON('yd_staff') };
+
+/* ---------- helpers ---------- */
+const $ = (s, el=document) => el.querySelector(s);
+const $$ = (s, el=document) => [...el.querySelectorAll(s)];
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function n(v){ return Number(v || 0).toLocaleString('th-TH', {maximumFractionDigits:2}); }
+function dt(s){ const d = new Date(s); return isNaN(d) ? '' : d.toLocaleString('th-TH', {dateStyle:'medium', timeStyle:'short'}); }
+function view(html){ $('#app').innerHTML = html; }
+function shuffle(a){ a = a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+let toastT;
+function toast(msg, isErr){ const t=$('#toast'); t.textContent=msg; t.className='show'+(isErr?' err':''); clearTimeout(toastT); toastT=setTimeout(()=>t.className='', 3200); }
+async function busy(btn, fn){
+  const old = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spin"></span> กำลังทำงาน...';
+  try{ return await fn(); }
+  catch(e){ toast(e.message || 'เกิดข้อผิดพลาด', true); }
+  finally{ if(btn.isConnected){ btn.disabled = false; btn.innerHTML = old; } }
+}
+function fbUrl(k){ return (S.pub && S.pub.settings[k]) || ''; }
+function link(text, url, bold){ const t = bold ? `<b>${esc(text)}</b>` : esc(text); return url ? `<a href="${esc(url)}" target="_blank" rel="noopener">${t}</a>` : t; }
+
+/* ---------- icons ---------- */
+function capSvg(size=44, ring='#1F6B4F', fill='#E7F3EC'){
+  let r=''; for(let i=0;i<24;i++){ const a=i/24*Math.PI*2; r+=`<circle cx="${(32+27.5*Math.cos(a)).toFixed(2)}" cy="${(32+27.5*Math.sin(a)).toFixed(2)}" r="3.6"/>`; }
+  return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" aria-hidden="true"><g fill="${ring}">${r}<circle cx="32" cy="32" r="27.5"/></g><circle cx="32" cy="32" r="20.5" fill="${fill}"/><path d="M23 41c0-10.5 7.5-18 18-18 0 10.5-7.5 18-18 18z" fill="#1B9C85"/><path d="M23.5 40.5L34 30" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><circle cx="42" cy="41" r="4.2" fill="#FFB000"/></svg>`;
+}
+const ICON = {
+  home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/>',
+  gift:'<rect x="3" y="8" width="18" height="5" rx="1"/><path d="M5 13v8h14v-8M12 8v13M12 8S10 3 7.5 4.5 9 8 12 8zm0 0s2-5 4.5-3.5S15 8 12 8z"/>',
+  pin:'<path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/>',
+  chat:'<path d="M4 5h16v11H9l-5 4z"/>',
+  lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  recycle:'<path d="M7 19H4l3-5M17 19h3l-3-5M12 4l-2 3.5M12 4l2 3.5M8.5 9.5L12 4l3.5 5.5M5.5 14l3-5.5M18.5 14l-3-5.5M7 19h10"/>',
+  camera:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  qr:'<rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2"/>'
+};
+function ic(name, size=22){ return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[name]||''}</svg>`; }
+function rewardArt(cat){
+  const bg = {household:'#E6F6FA', local:'#FFF4D6', green:'#E7F3EC'}[cat] || '#E7F3EC';
+  const fg = {household:'#00A8CC', local:'#C98A00', green:'#1B9C85'}[cat] || '#1B9C85';
+  const shape = {
+    household:'<path d="M42 22h16v10l6 8v38a6 6 0 0 1-6 6H42a6 6 0 0 1-6-6V40l6-8z" fill="FG" opacity=".9"/><rect x="40" y="50" width="20" height="16" rx="3" fill="#fff" opacity=".8"/>',
+    local:'<path d="M20 44l6-16h48l6 16z" fill="FG"/><rect x="24" y="44" width="52" height="34" rx="4" fill="FG" opacity=".55"/><rect x="42" y="58" width="16" height="20" rx="2" fill="#fff" opacity=".85"/>',
+    green:'<path d="M28 78c0-30 20-50 48-50 0 30-20 50-48 50z" fill="FG"/><path d="M30 76l28-28" stroke="#fff" stroke-width="4" stroke-linecap="round"/>'
+  }[cat] || '';
+  return `<div class="reward-img" style="background:${bg}"><svg width="96" height="96" viewBox="0 0 100 100" aria-hidden="true">${shape.replaceAll('FG', fg)}</svg></div>`;
+}
+
+/* =========================================================
+ *  API
+ * ========================================================= */
+async function api(action, payload={}, token=''){
+  if(DEMO){ await new Promise(r=>setTimeout(r,250)); return mockApi(action, JSON.parse(JSON.stringify(payload)), token); }
+  let res;
+  try{ res = await fetch(API_URL, { method:'POST', body: JSON.stringify({ action, payload, token }) }); }
+  catch(e){ throw new Error('เชื่อมต่อระบบไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'); }
+  let j; try{ j = await res.json(); }catch(e){ throw new Error('ระบบตอบกลับไม่ถูกต้อง'); }
+  if(!j.ok){
+    if(j.code === 'AUTH') onAuthExpired(action);
+    throw new Error(j.error || 'เกิดข้อผิดพลาด');
+  }
+  return j.data;
+}
+function onAuthExpired(action){
+  if(/^(staff|admin)/.test(action)){ S.stoken=''; S.staff=null; save('yd_stoken',''); save('yd_staff',''); }
+  else { S.mtoken=''; save('yd_mtoken',''); }
+  setTimeout(route, 50);
+}
+
+/* =========================================================
+ *  Shell: nav / drawer / brand
+ * ========================================================= */
+function renderShell(){
+  const cur = curRoute();
+  const items = NAV.map(([r,t,i]) => `<a href="#/${r}" class="${cur===r?'active':''}">${t}</a>`).join('');
+  $('#navlinks').innerHTML = items + `<a href="#/staff" class="${cur==='staff'?'active':''}">เจ้าหน้าที่</a>`;
+  $('#drawerLinks').innerHTML = NAV.map(([r,t,i]) => `<a href="#/${r}" class="${cur===r?'active':''}">${ic(i)} ${t}</a>`).join('')
+    + `<div class="sep"></div><a href="#/staff" class="${cur==='staff'?'active':''}">${ic('lock')} เข้าสู่ระบบ (สำหรับเจ้าหน้าที่)</a>`;
+  const logo = S.pub && S.pub.settings.logoUrl;
+  $('#brandLogo').innerHTML = logo ? `<img src="${esc(logo)}" alt="โลโก้">` : capSvg(42);
+  $('#favicon').href = logo || ('data:image/svg+xml,' + encodeURIComponent(capSvg(64).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ')));
+  const chip = $('#staffChip');
+  if(S.staff){ chip.innerHTML = ic('user',16) + ' ' + esc(S.staff.displayName); chip.classList.add('on'); } else chip.classList.remove('on');
+  const fb = fbUrl('brandFacebook') || fbUrl('facebookPage');
+  $('#footerFb').href = fb || '#/contact';
+  $('#footerFb').target = fb ? '_blank' : '';
+  const ln = fbUrl('brandLine'); $('#footerLine').hidden = !ln; if(ln) $('#footerLine').href = ln;
+}
+function closeMenu(){ document.body.classList.remove('menu-open'); }
+$('#menuBtn').onclick = () => document.body.classList.add('menu-open');
+$('#closeBtn').onclick = closeMenu;
+$('#drawerBg').onclick = closeMenu;
+
+/* =========================================================
+ *  Router
+ * ========================================================= */
+const ROUTES = { '':pageHome, earn:pageEarn, rewards:pageRewards, dropoff:pageDropoff, contact:pageContact, privacy:pageprivacy, member:pageMember, staff:pageStaff, redeem:pageRedeem };
+function qp(k){ return new URLSearchParams(location.hash.split('?')[1] || '').get(k) || ''; }
+function curRoute(){ return location.hash.replace(/^#\/?/, '').split('?')[0]; }
+function route(){
+  closeMenu(); stopScanner();
+  const r = curRoute();
+  renderShell();
+  (ROUTES[r] || pageHome)();
+  window.scrollTo(0,0);
+}
+window.addEventListener('hashchange', route);
+
+/* =========================================================
+ *  หน้าแรก
+ * ========================================================= */
+function rewardImg(r){ return r.images && r.images[0] ? `<div class="reward-img"><img src="${esc(r.images[0])}" alt="${esc(r.name)}" loading="lazy"></div>` : rewardArt(r.category); }
+function isOut(r){ return r.stock !== '' && r.stock != null && Number(r.stock) <= 0; }
+function rewardCard(r){
+  const img = rewardImg(r);
+  return `<article class="reward">${img}<div class="reward-body">
+    <div class="chiprow"><span class="chip">${esc(CAT[r.category] || r.category)}</span>${r.kind === 'coupon' ? '<span class="chip" style="background:var(--amber-soft);color:#7A4B00">คูปอง · ไม่ต้องรอส่ง</span>' : ''}</div>
+    <div class="reward-name">${esc(r.name)}</div>
+    <div class="reward-desc">${esc(r.description)}</div>
+    ${r.sponsor ? `<div class="small muted">สนับสนุนโดย <b>${esc(r.sponsor)}</b></div>` : ''}
+    <span class="pts"><b>${n(r.points)}</b> แต้ม</span>
+    ${isOut(r) ? `<button class="btn btn-soft btn-block" disabled style="margin-top:8px">ของหมดแล้ว</button>`
+      : `<a class="btn btn-amber btn-block" style="margin-top:8px" href="#/redeem?id=${encodeURIComponent(r.id)}">${ic('gift',20)} แลกของรางวัล</a>`}
+  </div></article>`;
+}
+function pageHome(){
+  const picks = shuffle(S.pub.rewards).slice(0,3);
+  view(`
+  <section class="hero">
+    <div class="hero-deco">${capSvg(220,'#D6EBDF','#EEF6F1')}</div>
+    <h1 class="hero-title">อยู่ดี<span class="pt">มีแต้ม</span></h1>
+    <p class="hero-lead">เล็กๆ ก็มีแต้ม</p>
+    <p class="hero-desc">นำ<span class="nowrap">ขยะรีไซเคิล</span>ที่แยกแล้วมาที่<span class="nowrap">จุดรับ</span> <span class="nowrap">เจ้าหน้าที่</span>ชั่งและ<span class="nowrap">ให้แต้มทันที</span> สะสมไว้<span class="nowrap">แลกของใช้</span> <span class="nowrap">แต้มไม่มีวันหมดอายุ</span></p>
+  </section>
+
+  <section class="actions">
+    <a class="btn btn-primary btn-lg" href="#/earn">${ic('recycle')} แลกขยะสะสมแต้ม</a>
+    <a class="btn btn-amber btn-lg" href="#/rewards">${ic('gift')} แลกของรางวัล</a>
+    <a class="btn btn-blue btn-lg" href="#/dropoff">${ic('pin')} จุดรับขยะ (Drop-off)</a>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>ของรางวัลที่แลกได้</h2><a href="#/rewards" class="kanit">ดูทั้งหมด →</a></div>
+    <div class="grid3">${picks.map(r => rewardCard(r)).join('') || '<p class="muted">ยังไม่มีรายการของรางวัล</p>'}</div>
+  </section>`);
+}
+
+/* =========================================================
+ *  วิธีสะสมแต้ม
+ * ========================================================= */
+function pageEarn(){
+  const types = S.pub.wasteTypes;
+  view(`
+  <section><h1>แลกขยะสะสมแต้ม</h1><p class="muted" style="margin:0">นำขยะมาที่จุดรับ เจ้าหน้าที่ชั่งและบันทึกแต้มให้ทันที แต้มไม่มีวันหมดอายุ</p></section>
+  <section class="steps">
+    <div class="step"><div><h3>สมัครสมาชิก</h3><p>ใช้เบอร์โทรศัพท์และตั้ง PIN 6 หลัก จะได้รหัสสมาชิกและบัตร QR ทันที</p></div></div>
+    <div class="step"><div><h3>แยกขยะให้สะอาด</h3><p>ล้าง ทำให้แห้ง และแยกตามประเภทด้านล่าง</p></div></div>
+    <div class="step"><div><h3>นำไปที่จุดรับขยะ</h3><p>แสดงบัตร QR หรือบอกเบอร์โทรกับเจ้าหน้าที่</p></div></div>
+    <div class="step"><div><h3>รับแต้มทันที</h3><p>เจ้าหน้าที่ชั่งน้ำหนัก ถ่ายรูปยืนยัน แล้วแต้มเข้าบัญชีของคุณ</p></div></div>
+  </section>
+  <section class="card">
+    <h2>ขยะที่รับ และอัตราแต้ม</h2>
+    ${types.map(t => `<div class="rate"><div><div class="nm">${esc(t.name)}</div><div class="ds">${esc(t.description)}</div></div><span class="pts"><b>${n(t.pointsPerUnit)}</b> แต้ม/${esc(t.unit)}</span></div>`).join('') || '<p class="muted">ยังไม่มีข้อมูล</p>'}
+  </section>
+  <section class="grid2">
+    <a class="btn btn-primary btn-lg" href="#/member">${ic('qr')} ${S.mtoken ? 'เปิดบัตรสมาชิกของฉัน' : 'สมัครสมาชิก / เข้าสู่ระบบ'}</a>
+    <a class="btn btn-blue btn-lg" href="#/dropoff">${ic('pin')} ดูจุดรับขยะ</a>
+  </section>`);
+}
+
+/* =========================================================
+ *  ของรางวัล
+ * ========================================================= */
+let rewardFilter = 'all';
+function pageRewards(){
+  const all = S.pub.rewards;
+  const list = rewardFilter === 'all' ? all : all.filter(r => r.category === rewardFilter);
+  view(`
+  <section><h1>แลกของรางวัล</h1><p class="muted" style="margin:0">นำแต้มสะสมมาแลกของรางวัล สิทธิประโยชน์ หรือส่วนลดจากร้านค้าในชุมชน จัดส่งฟรี</p></section>
+  <div class="chips" id="chips">
+    <button data-c="all" class="${rewardFilter==='all'?'on':''}">ทั้งหมด</button>
+    ${Object.keys(CAT).map(k => `<button data-c="${k}" class="${rewardFilter===k?'on':''}">${CAT[k]}</button>`).join('')}
+  </div>
+  <div class="grid3">${list.map(r => rewardCard(r)).join('') || '<p class="muted">ยังไม่มีรายการในหมวดนี้</p>'}</div>`);
+  $$('#chips button').forEach(b => b.onclick = () => { rewardFilter = b.dataset.c; pageRewards(); });
+}
+
+/* =========================================================
+ *  จุดรับขยะ
+ * ========================================================= */
+function pageDropoff(){
+  const ds = S.pub.dropoffs;
+  view(`
+  <section><h1>จุดรับขยะ (Drop-off)</h1><p class="muted" style="margin:0">นำขยะที่แยกแล้วมาส่งได้ที่จุดเหล่านี้ แผนที่แบบโต้ตอบจะเพิ่มในรอบถัดไป</p></section>
+  <div class="grid2">${ds.map(d => {
+    const q = d.lat && d.lng ? `${d.lat},${d.lng}` : d.address;
+    return `<div class="card">
+      <h3>${ic('pin',20)} ${esc(d.name)}</h3>
+      <p style="margin:.2em 0">${esc(d.address)}</p>
+      ${d.openHours ? `<p class="small muted" style="margin:.2em 0">เวลาเปิดรับ: ${esc(d.openHours)}</p>` : ''}
+      ${d.acceptedTypes ? `<p class="small muted" style="margin:.2em 0 .8em">รับ: ${esc(d.acceptedTypes)}</p>` : ''}
+      <a class="btn btn-soft btn-block" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}">เปิดใน Google Maps</a>
+    </div>`; }).join('') || '<p class="muted">ยังไม่มีจุดรับขยะ</p>'}</div>`);
+}
+
+/* =========================================================
+ *  ติดต่อเรา
+ * ========================================================= */
+function pageContact(){
+  const st = S.pub.settings;
+  const ext = (url, text) => `<a href="${esc(url)}" target="_blank" rel="noopener"><b>${esc(text)}</b></a>`;
+  view(`
+  <section class="card" style="max-width:640px">
+    <h1>ติดต่อเรา</h1>
+    <p style="margin-top:0">สอบถามเรื่องแต้ม การสมัครสมาชิก ของรางวัล และจุดรับขยะ</p>
+    <div class="notice" style="margin:12px 0 0">
+      <p style="margin:0">E-mail : <a href="mailto:${esc(st.email)}">${esc(st.email)}</a></p>
+      ${st.brandFacebook ? `<p style="margin:.3em 0 0">Facebook : ${ext(st.brandFacebook, 'อยู่ดีมีแต้ม')}</p>` : ''}
+      ${st.brandLine ? `<p style="margin:.3em 0 0">LINE : ${ext(st.brandLine, 'เพิ่มเพื่อน')}</p>` : ''}
+    </div>
+    <p class="small muted" style="margin:14px 0 0">ดูที่ตั้งและเวลาเปิดรับได้ที่หน้า <a href="#/dropoff">จุดรับขยะ</a></p>
+  </section>`);
+}
+
+/* =========================================================
+ *  นโยบายความเป็นส่วนตัว (PDPA มาตรา 23)
+ * ========================================================= */
+function pageprivacy(){
+  const st = S.pub.settings;
+  const sec = (t, body) => `<h2 style="margin-top:1.4em">${t}</h2>${body}`;
+  const ul = items => `<ul style="margin:.4em 0;padding-left:1.3em">${items.map(i => `<li style="margin:.25em 0">${i}</li>`).join('')}</ul>`;
+  const chan = [
+    st.dataControllerAddress ? `ที่อยู่ : ${esc(st.dataControllerAddress)}` : '',
+    `E-mail : <a href="mailto:${esc(st.email)}">${esc(st.email)}</a>`,
+    st.brandLine ? `LINE : <a href="${esc(st.brandLine)}" target="_blank" rel="noopener">อยู่ดีมีแต้ม</a>` : '',
+    st.brandFacebook ? `Facebook : <a href="${esc(st.brandFacebook)}" target="_blank" rel="noopener">อยู่ดีมีแต้ม</a>` : ''
+  ].filter(Boolean);
+  view(`
+  <article class="card" style="max-width:760px;margin:0 auto">
+    <h1>นโยบายความเป็นส่วนตัว</h1>
+    <p class="muted" style="margin-top:0">อยู่ดีมีแต้ม · ฉบับวันที่ 8 ตุลาคม 2569</p>
+    <p>หน้านี้อธิบายว่าอยู่ดีมีแต้มเก็บข้อมูลอะไรของคุณ ใช้ทำอะไร เก็บไว้นานเท่าไร ส่งต่อให้ใคร และคุณมีสิทธิ์อะไรบ้าง ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562</p>
+
+    ${sec('1. ผู้ควบคุมข้อมูล', `<p>${st.dataController ? `<b>${esc(st.dataController)}</b> ผู้ดำเนินการอยู่ดีมีแต้ม` : 'ผู้ดำเนินการอยู่ดีมีแต้ม'} เป็นผู้ตัดสินใจเรื่องการเก็บและใช้ข้อมูลของคุณ ติดต่อได้ที่</p>${ul(chan)}`)}
+
+    ${sec('2. ข้อมูลที่เราเก็บ', ul([
+      '<b>ตอนสมัครสมาชิก:</b> ชื่อ-นามสกุล เบอร์โทรศัพท์ และ PIN (เก็บแบบเข้ารหัสทางเดียว เจ้าหน้าที่ก็ดูเลข PIN ไม่ได้)',
+      '<b>ตอนนำขยะมาส่ง:</b> ประเภทและน้ำหนักขยะ แต้มที่ได้ วันเวลา จุดรับ เจ้าหน้าที่ผู้บันทึก และรูปขยะบนตาชั่ง (ถ่ายเฉพาะขยะ ไม่ถ่ายหน้าคน)',
+      '<b>ตอนแลกของรางวัล:</b> ของที่แลก แต้มที่ใช้ วิธีรับของ และถ้าเลือกให้ส่งถึงบ้าน คือ ชื่อผู้รับ เบอร์โทร ที่อยู่ และช่องทางติดต่ออื่นที่คุณกรอกเอง',
+      '<b>ในเครื่องของคุณ:</b> รหัสเข้าสู่ระบบชั่วคราว เก็บไว้ในเบราว์เซอร์เพื่อไม่ต้องใส่ PIN ทุกครั้ง หายไปเมื่อกดออกจากระบบ'
+    ]))}
+
+    ${sec('3. ใช้ข้อมูลทำอะไร', ul([
+      'ยืนยันว่าเป็นสมาชิก บันทึกแต้ม และแสดงประวัติแต้มให้คุณดู โดยอาศัย<b>ความยินยอม</b>ของคุณตอนสมัคร',
+      'จัดเตรียมและส่งของรางวัลที่คุณขอแลก และติดต่อเรื่องการจัดส่ง เพื่อ<b>ให้บริการตามที่คุณร้องขอ</b>',
+      'ตรวจสอบความถูกต้องของแต้มเมื่อมีข้อสงสัย จากรูปยืนยันและประวัติการบันทึก',
+      'สรุปตัวเลขรวม เช่น น้ำหนักขยะรวมต่อเดือน เพื่อรายงานผลโครงการ โดยไม่ระบุตัวบุคคล'
+    ]) + '<p>เราไม่ขายข้อมูลของคุณ และไม่ใช้ส่งโฆษณาของบุคคลอื่น</p>')}
+
+    ${sec('4. ถ้าไม่ให้ข้อมูล', '<p>ชื่อและเบอร์โทรจำเป็นสำหรับการเป็นสมาชิกและสะสมแต้ม ถ้าไม่ให้ จะสมัครไม่ได้ ส่วนที่อยู่จำเป็นเฉพาะเมื่อเลือกให้ส่งของถึงบ้าน ถ้าไม่อยากให้ เลือกรับของที่จุดรับขยะหรือรับเป็นคูปองได้</p>')}
+
+    ${sec('5. ส่งต่อข้อมูลให้ใคร', ul([
+      '<b>เจ้าหน้าที่และอาสาที่จุดรับขยะ</b> เห็นชื่อ รหัสสมาชิก และเบอร์โทรแบบปิดเลขกลาง เพื่อบันทึกแต้มให้คุณ',
+      '<b>อาสาสมัครส่งของ หรือบริษัทขนส่ง</b> ได้รับชื่อผู้รับ เบอร์โทร และที่อยู่ เฉพาะเมื่อคุณเลือกให้ส่งถึงบ้าน',
+      '<b>ร้านค้าพาร์ทเนอร์</b> เห็นเฉพาะรหัสคูปองที่คุณนำไปใช้',
+      '<b>Google</b> เป็นผู้ให้บริการระบบที่เราใช้เก็บข้อมูล (Google Sheets และ Google Drive) เซิร์ฟเวอร์ของ Google อาจอยู่นอกประเทศไทย'
+    ]))}
+
+    ${sec('6. เก็บไว้นานเท่าไร', '<p>เก็บตลอดเวลาที่คุณเป็นสมาชิก เมื่อคุณขอลบข้อมูล เราจะลบชื่อ เบอร์โทร ที่อยู่ และรูปยืนยันของคุณภายใน 30 วัน แต้มที่เหลือจะสิ้นสุดไปด้วย ส่วนตัวเลขรวมที่ไม่ระบุตัวบุคคล เช่น น้ำหนักขยะรวม อาจเก็บต่อไว้สำหรับรายงานผลโครงการ</p>')}
+
+    ${sec('7. สิทธิ์ของคุณ', ul([
+      'ถอนความยินยอมเมื่อไรก็ได้',
+      'ขอดูและขอสำเนาข้อมูลของคุณ',
+      'ขอรับข้อมูลในรูปแบบไฟล์ที่เปิดอ่านได้ทั่วไป หรือขอให้ส่งต่อไปยังผู้อื่น',
+      'คัดค้านการเก็บหรือใช้ข้อมูล',
+      'ขอให้ลบ หรือทำให้ข้อมูลไม่ระบุตัวบุคคล',
+      'ขอให้ระงับการใช้ข้อมูลชั่วคราว',
+      'ขอแก้ไขข้อมูลให้ถูกต้องและเป็นปัจจุบัน',
+      'ร้องเรียนต่อสำนักงานคณะกรรมการคุ้มครองข้อมูลส่วนบุคคล (สคส.) ที่ <a href="https://www.pdpc.or.th" target="_blank" rel="noopener">www.pdpc.or.th</a>'
+    ]) + `<p>ใช้สิทธิ์ได้โดยส่งคำขอทาง <a href="mailto:${esc(st.email)}">${esc(st.email)}</a> หรือแจ้งเจ้าหน้าที่ที่จุดรับขยะ เราจะตอบภายใน 30 วัน</p>`)}
+
+    ${sec('8. เด็ก', '<p>ผู้ที่อายุไม่เกิน 10 ปี ต้องให้ผู้ปกครองสมัครให้ด้วยเบอร์โทรของผู้ปกครอง</p>')}
+
+    ${sec('9. การเปลี่ยนแปลงนโยบาย', '<p>ถ้าแก้ไขนโยบายนี้ เราจะแก้วันที่ด้านบน และแจ้งทาง LINE และ Facebook ของอยู่ดีมีแต้ม</p>')}
+  </article>`);
+}
+
+/* =========================================================
+ *  สมาชิก
+ * ========================================================= */
+let memberTab = 'login';
+function pageMember(){
+  if(S.mtoken) return memberHome();
+  view(`
+  <section style="max-width:520px;margin:0 auto">
+    <h1>ข้อมูลสมาชิก</h1>
+    <div class="tabs"><button class="tab ${memberTab==='login'?'on':''}" data-t="login">เข้าสู่ระบบ</button><button class="tab ${memberTab==='reg'?'on':''}" data-t="reg">สมัครสมาชิก</button></div>
+    <div class="card" id="authBox"></div>
+  </section>`);
+  $$('.tab').forEach(b => b.onclick = () => { memberTab = b.dataset.t; pageMember(); });
+  const box = $('#authBox');
+  if(memberTab === 'login'){
+    box.innerHTML = `
+      <label class="f" for="lp">เบอร์โทรศัพท์</label><input id="lp" inputmode="tel" autocomplete="tel" placeholder="0812345678">
+      <label class="f" for="lpin">PIN 6 หลัก</label><input id="lpin" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password" placeholder="••••••">
+      <button class="btn btn-primary btn-lg btn-block" id="loginBtn" style="margin-top:18px">เข้าสู่ระบบ</button>
+      <p class="hint" style="text-align:center;margin-top:12px">ลืม PIN? ติดต่อเจ้าหน้าที่ที่จุดรับขยะ หรือทักแชท LINE อยู่ดีมีแต้ม</p>`;
+    $('#loginBtn').onclick = e => busy(e.currentTarget, async () => {
+      const d = await api('memberLogin', { phone: $('#lp').value, pin: $('#lpin').value });
+      afterAuth(d, 'ยินดีต้อนรับ ' + d.member.name);
+    });
+  } else {
+    box.innerHTML = `
+      <label class="f" for="rn">ชื่อ-นามสกุล</label><input id="rn" autocomplete="name" placeholder="เช่น สมศรี ใจดี">
+      <label class="f" for="rp">เบอร์โทรศัพท์</label><input id="rp" inputmode="tel" autocomplete="tel" placeholder="0812345678">
+      <div class="hint">1 เบอร์ สมัครได้ 1 รหัสสมาชิก</div>
+      <label class="f" for="rpin">ตั้ง PIN 6 หลัก</label><input id="rpin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" placeholder="••••••">
+      <label class="f" for="rpin2">ยืนยัน PIN อีกครั้ง</label><input id="rpin2" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" placeholder="••••••">
+      <div class="hint">ห้ามใช้เลขเรียง เช่น 123456 หรือเลขซ้ำ เช่น 111111</div>
+      <label class="check"><input type="checkbox" id="rc"><span>ข้าพเจ้ายินยอมให้อยู่ดีมีแต้มเก็บชื่อและเบอร์โทรศัพท์ เพื่อใช้ในระบบสะสมแต้มและติดต่อเรื่องของรางวัลเท่านั้น และขอลบข้อมูลได้ทุกเมื่อทาง ${esc(S.pub.settings.email)} · <a href="#/privacy" target="_blank" rel="noopener">อ่านนโยบายความเป็นส่วนตัว</a></span></label>
+      <button class="btn btn-primary btn-lg btn-block" id="regBtn">สมัครสมาชิก</button>`;
+    $('#regBtn').onclick = e => busy(e.currentTarget, async () => {
+      if($('#rpin').value !== $('#rpin2').value) throw new Error('PIN ทั้งสองช่องไม่ตรงกัน');
+      const d = await api('register', { name: $('#rn').value, phone: $('#rp').value, pin: $('#rpin').value, consent: $('#rc').checked });
+      afterAuth(d, 'สมัครสำเร็จ รหัสสมาชิกของคุณคือ ' + d.member.memberId);
+    });
+  }
+}
+
+function afterAuth(d, msg){
+  S.mtoken = d.token; save('yd_mtoken', d.token); toast(msg);
+  if(S.afterLogin){ const t = S.afterLogin; S.afterLogin = ''; location.hash = t; } else memberHome();
+}
+async function memberHome(){
+  view('<div class="skeleton" style="max-width:520px"></div>');
+  let d;
+  try{ d = await api('memberMe', {}, S.mtoken); }
+  catch(e){ if(!S.mtoken) return pageMember(); view(`<div class="notice err">${esc(e.message)}</div>`); return; }
+  const m = d.member;
+  const earnCount = d.history.filter(h => h.type === 'earn').length;
+  view(`
+  <section class="mcard" id="mcard">
+    <div class="mc-top"><div><div class="mc-label">บัตรสมาชิก อยู่ดีมีแต้ม</div><div class="mc-name">${esc(m.name)}</div><div class="mc-label">${esc(m.phoneMasked)}</div></div>${capSvg(44,'#FFB000','#17553F')}</div>
+    <div class="mc-body">
+      <div class="mc-qr" id="qr"></div>
+      <div><div class="mc-label">รหัสสมาชิก</div><div class="mc-id">${esc(m.memberId)}</div>
+      <div class="mc-pts-wrap"><div class="mc-label" style="margin-top:8px">แต้มสะสม</div><div class="mc-points">${n(m.points)} <span>แต้ม</span></div></div>
+      <div class="mc-print-note" hidden>แสดงบัตรนี้ที่จุดรับขยะ<br>เล็กๆ ก็มีแต้ม</div></div>
+    </div>
+    <div class="mc-foot">แสดงบัตรนี้ให้เจ้าหน้าที่ที่จุดรับขยะ · แต้มไม่มีวันหมดอายุ</div>
+  </section>
+  <section class="stats no-print">
+    <div class="stat"><div class="v">${n(m.totalKg)}</div><div class="k">กิโลกรัมที่ส่งแล้ว</div></div>
+    <div class="stat"><div class="v">${n(earnCount)}</div><div class="k">ครั้งที่นำขยะมาส่ง</div></div>
+  </section>
+  <section class="card no-print">
+    <h2>ประวัติแต้มเข้า-ออก</h2>
+    ${d.history.map(h => `<div class="list-item"><div><div class="kanit">${esc(h.wasteName)}${h.quantity ? ` · ${n(h.quantity)} ${esc(h.unit)}` : ''}</div><div class="small muted">${dt(h.createdAt)}${h.note ? ' · ' + esc(h.note) : ''}</div></div><div class="${h.points<0?'minus':'plus'}">${h.points>0?'+':''}${n(h.points)}</div></div>`).join('') || '<p class="muted">ยังไม่มีประวัติ นำขยะไปที่จุดรับเพื่อเริ่มสะสมแต้ม</p>'}
+  </section>
+  <section class="card no-print">
+    <h2>ของรางวัลที่แลกแล้ว</h2>
+    ${(d.redemptions||[]).map(r => `<div class="list-item"><div><div class="kanit">${esc(r.rewardName)}</div><div class="small muted">${r.method === 'coupon' ? 'รหัสคูปอง <b>' + esc(r.redeemId) + '</b>' : esc(r.redeemId)} · ${esc(METHOD[r.method] || '')}${r.method === 'pickup' && dropName(r.dropoffId) ? ' (' + esc(dropName(r.dropoffId)) + ')' : ''} · ${dt(r.createdAt)}</div>${r.statusNote ? `<div class="small" style="margin-top:4px">หมายเหตุจากเจ้าหน้าที่: ${esc(r.statusNote)}</div>` : ''}</div><div style="text-align:right">${stChip(r.status)}<div class="small muted" style="margin-top:4px">${n(r.points)} แต้ม</div></div></div>`).join('')
+      || '<p class="muted" style="margin:0">ยังไม่มีรายการแลกของรางวัล · <a href="#/rewards">ดูของรางวัล</a></p>'}
+    ${(d.redemptions||[]).length ? '<p class="hint">สงสัยเรื่องการจัดส่ง ทักแชท LINE หรือ Facebook ของอยู่ดีมีแต้มได้ที่หน้า <a href="#/contact">ติดต่อเรา</a></p>' : ''}
+  </section>
+  <section class="grid2 no-print">
+    <button class="btn btn-soft btn-lg" onclick="window.print()">พิมพ์บัตรสมาชิก</button>
+    <button class="btn btn-ghost btn-lg" id="logoutBtn">ออกจากระบบ</button>
+  </section>`);
+  drawQR($('#qr'), m.memberId);
+  $('#logoutBtn').onclick = async () => { try{ await api('logout', {}, S.mtoken); }catch(e){} S.mtoken=''; save('yd_mtoken',''); memberTab='login'; pageMember(); };
+}
+function drawQR(el, text){
+  if(window.QRCode){ new QRCode(el, { text, width:132, height:132, colorDark:'#13463A', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.M }); }
+  else el.textContent = text;
+}
+
+/* =========================================================
+ *  แลกของรางวัล + กรอกข้อมูลเพื่อการจัดส่ง
+ * ========================================================= */
+function rewardSummary(r){
+  const imgs = r.images || [];
+  const gallery = imgs.length > 1 ? `<div class="card" style="margin-bottom:14px;padding:12px"><img id="gMain" src="${esc(imgs[0])}" alt="${esc(r.name)}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:14px">
+    <div class="gallery">${imgs.map((u,i) => `<button class="${i?'':'on'}" data-u="${esc(u)}" aria-label="รูปที่ ${i+1}"><img src="${esc(u)}" alt=""></button>`).join('')}</div></div>` : '';
+  setTimeout(() => $$('.gallery button').forEach(b => b.onclick = () => { $('#gMain').src = b.dataset.u; $$('.gallery button').forEach(x => x.classList.toggle('on', x === b)); }), 0);
+  return `${gallery}<div class="card rsum">${rewardImg(r)}<div><span class="chip">${esc(CAT[r.category] || r.category)}</span><div class="reward-name" style="margin:4px 0">${esc(r.name)}</div>${r.description ? `<div class="small muted" style="margin-bottom:6px">${esc(r.description)}</div>` : ''}${r.sponsor ? `<div class="small muted" style="margin-bottom:6px">สนับสนุนโดย <b>${esc(r.sponsor)}</b></div>` : ''}<span class="pts"><b>${n(r.points)}</b> แต้ม</span></div></div>`;
+}
+async function pageRedeem(){
+  const r = S.pub.rewards.find(x => x.id === qp('id'));
+  const wrap = html => view(`<section style="max-width:560px;margin:0 auto"><h1>แลกของรางวัล</h1>${html}</section>`);
+  if(!r){ wrap(`<div class="notice err">ไม่พบของรางวัลนี้ หรือปิดการแลกแล้ว</div><a class="btn btn-soft btn-block" style="margin-top:14px" href="#/rewards">กลับไปหน้าของรางวัล</a>`); return; }
+  if(!S.mtoken){
+    S.afterLogin = location.hash;
+    wrap(`${rewardSummary(r)}<div class="notice" style="margin-top:14px">กรุณาเข้าสู่ระบบหรือสมัครสมาชิกก่อนแลกของรางวัล ระบบจะพากลับมาหน้านี้ให้</div>
+      <a class="btn btn-primary btn-lg btn-block" href="#/member" style="margin-top:14px">เข้าสู่ระบบ / สมัครสมาชิก</a>`);
+    return;
+  }
+  wrap('<div class="skeleton"></div>');
+  let d;
+  try{ d = await api('memberMe', {}, S.mtoken); }
+  catch(e){ if(!S.mtoken) return; wrap(`<div class="notice err">${esc(e.message)}</div>`); return; }
+  const m = d.member, ls = d.lastShipping || {}, after = m.points - r.points, enough = after >= 0;
+  const balance = `<div class="card" style="margin-top:14px">
+      <div class="bal"><span>แต้มของคุณ</span><b>${n(m.points)}</b></div>
+      <div class="bal"><span>ใช้แลก</span><b class="minus">−${n(r.points)}</b></div>
+      <div class="bal last"><span>คงเหลือหลังแลก</span><b>${enough ? n(after) : '—'}</b></div></div>`;
+  if(isOut(r)){ wrap(`${rewardSummary(r)}<div class="notice err" style="margin-top:14px">ของรางวัลนี้หมดแล้ว</div><a class="btn btn-soft btn-block" style="margin-top:14px" href="#/rewards">ดูของรางวัลอื่น</a>`); return; }
+  if(!enough){
+    wrap(`${rewardSummary(r)}${balance}<div class="notice amber" style="margin-top:14px">ยังขาดอีก <b>${n(-after)}</b> แต้ม นำขยะไปที่จุดรับเพื่อสะสมเพิ่ม</div>
+      <div class="grid2" style="margin-top:14px"><a class="btn btn-primary btn-lg" href="#/earn">วิธีสะสมแต้ม</a><a class="btn btn-soft btn-lg" href="#/rewards">ดูของรางวัลอื่น</a></div>`);
+    return;
+  }
+  const postMin = Number(S.pub.settings.postMinPoints || 500);
+  const isCoupon = r.kind === 'coupon';
+  const canPost = r.points >= postMin;
+  const methods = [
+    ['pickup', 'รับที่จุดรับขยะ', 'ฟรี · มารับเองตามวันเวลาเปิดรับ', true],
+    ['volunteer', 'อาสาสมัครส่งถึงบ้าน', 'ฟรี · เฉพาะในเขตตลิ่งชัน รวบรอบส่งเดือนละครั้ง', true],
+    ['post', 'ส่งทางขนส่ง', canPost ? 'ฟรี · ส่งถึงบ้านทั่วประเทศ' : `สำหรับของรางวัลตั้งแต่ ${n(postMin)} แต้มขึ้นไป`, canPost]
+  ];
+  wrap(`${rewardSummary(r)}${balance}
+    <div class="card" style="margin-top:14px">
+    ${isCoupon ? `
+      <h2>รับเป็นคูปอง</h2>
+      <div class="notice">หลังยืนยัน คุณจะได้ <b>รหัสคูปอง</b> นำไปแสดงที่ร้านเพื่อใช้สิทธิ์ ไม่ต้องรอจัดส่ง ดูรหัสย้อนหลังได้ที่หน้าข้อมูลสมาชิก</div>` : `
+      <h2>เลือกวิธีรับของ</h2>
+      <div class="methods">${methods.map(([k,t,s,ok],i) => `<label class="method ${ok?'':'off'}"><input type="radio" name="mt" value="${k}" ${ok?'':'disabled'} ${i===0?'checked':''}><span><b class="kanit">${t}</b><span class="small muted">${s}</span></span></label>`).join('')}</div>
+      <div id="mPickup"><label class="f" for="dpk">จุดที่จะไปรับ</label><select id="dpk">${S.pub.dropoffs.map(d => `<option value="${esc(d.id)}">${esc(d.name)}</option>`).join('')}</select></div>
+      <label class="f" for="dn">ชื่อ-นามสกุลผู้รับ</label><input id="dn" autocomplete="name" value="${esc(ls.recipientName)}">
+      <label class="f" for="dp2">เบอร์โทรติดต่อ</label><input id="dp2" inputmode="tel" autocomplete="tel" value="${esc(ls.phone)}">
+      <div id="mAddr" hidden>
+        ${ls.address ? '<div class="hint" style="margin-top:10px">ที่อยู่กรอกไว้ให้จากครั้งก่อน กรุณาตรวจสอบก่อนยืนยัน</div>' : ''}
+        <label class="f" for="da">ที่อยู่สำหรับจัดส่ง</label><textarea id="da" rows="3" autocomplete="street-address" placeholder="บ้านเลขที่ ซอย ถนน แขวง เขต รหัสไปรษณีย์">${esc(ls.address)}</textarea>
+        <label class="f" for="do">ช่องทางการติดต่ออื่น ๆ (ถ้ามี)</label><input id="do" placeholder="เช่น LINE ID หรือชื่อ Facebook" value="${esc(ls.otherContact)}">
+      </div>`}
+      <button class="btn btn-amber btn-lg btn-block" id="redeemBtn" style="margin-top:18px">${ic('gift')} ยืนยันแลก ใช้ ${n(r.points)} แต้ม</button>
+      <p class="hint" style="text-align:center">แต้มจะถูกหักทันที ถ้าเจ้าหน้าที่ยกเลิกคำขอ แต้มจะคืนให้อัตโนมัติ</p>
+    </div>`);
+  const curMethod = () => isCoupon ? 'coupon' : ($('input[name=mt]:checked') || {}).value;
+  const syncM = () => { const v = curMethod(); if($('#mPickup')) $('#mPickup').hidden = v !== 'pickup'; if($('#mAddr')) $('#mAddr').hidden = !(v === 'volunteer' || v === 'post'); };
+  $$('input[name=mt]').forEach(x => x.onchange = syncM); syncM();
+  $('#redeemBtn').onclick = e => {
+    if(!confirm(`ยืนยันใช้ ${n(r.points)} แต้ม แลก "${r.name}" ?`)) return;
+    busy(e.currentTarget, async () => {
+      const method = curMethod();
+      const payload = isCoupon ? { rewardId:r.id } : { rewardId:r.id, method, dropoffId:$('#dpk') ? $('#dpk').value : '', recipientName:$('#dn').value, phone:$('#dp2').value, address:$('#da').value, otherContact:$('#do').value };
+      const res = await api('memberRedeem', payload, S.mtoken);
+      refreshPublic().catch(()=>{});
+      const how = res.method === 'coupon'
+        ? `<p style="margin:.6em 0 0">รหัสคูปองของคุณ</p><div class="coupon">${esc(res.redeemId)}</div><p class="small muted" style="margin:0">แสดงรหัสนี้ที่ร้านเพื่อใช้สิทธิ์</p>`
+        : `<p class="muted" style="margin:.2em 0">เลขที่คำขอ <b>${esc(res.redeemId)}</b> · ${esc(METHOD[res.method])}${res.method === 'pickup' ? ' (' + esc(dropName(payload.dropoffId)) + ')' : ''}</p><p class="small muted">ติดตามสถานะได้ที่หน้าข้อมูลสมาชิก</p>`;
+      wrap(`<div class="card success">
+        <div class="big">${ic('gift',56)}</div>
+        <h2 style="margin:.4em 0 .2em">${res.method === 'coupon' ? 'แลกคูปองสำเร็จ' : 'ส่งคำขอแลกของแล้ว'}</h2>
+        <p style="margin:0">${esc(res.rewardName)} · ใช้ ${n(res.points)} แต้ม · คงเหลือ ${n(res.balance)} แต้ม</p>
+        ${how}
+        <div class="grid2" style="margin-top:14px"><a class="btn btn-primary btn-lg" href="#/member">${res.method === 'coupon' ? 'ไปหน้าข้อมูลสมาชิก' : 'ดูสถานะการจัดส่ง'}</a><a class="btn btn-soft btn-lg" href="#/rewards">ดูของรางวัลอื่น</a></div>
+      </div>`);
+    });
+  };
+}
+
+/* =========================================================
+ *  เจ้าหน้าที่ / แอดมิน
+ * ========================================================= */
+let staffTab = 'record';
+function pageStaff(){
+  if(!S.stoken || !S.staff){
+    view(`
+    <section style="max-width:460px;margin:0 auto">
+      <h1>เข้าสู่ระบบ (สำหรับเจ้าหน้าที่)</h1>
+      <div class="card">
+        <label class="f" for="su">ชื่อผู้ใช้</label><input id="su" autocomplete="username" autocapitalize="none">
+        <label class="f" for="sp">รหัสผ่าน</label><input id="sp" type="password" autocomplete="current-password">
+        <button class="btn btn-primary btn-lg btn-block" id="sBtn" style="margin-top:18px">เข้าสู่ระบบ</button>
+      </div>
+    </section>`);
+    $('#sBtn').onclick = e => busy(e.currentTarget, async () => {
+      const d = await api('staffLogin', { username: $('#su').value, password: $('#sp').value });
+      S.stoken = d.token; S.staff = d.staff; save('yd_stoken', d.token); save('yd_staff', JSON.stringify(d.staff));
+      staffTab = 'record'; renderShell(); pageStaff();
+    });
+    return;
+  }
+  const isAdmin = S.staff.role === 'admin';
+  const tabs = [['record','บันทึกขยะ']].concat(isAdmin ? [['summary','ภาพรวม'],['redeems','คำขอแลกของ'],['rewards','ของรางวัล'],['types','ประเภทขยะ'],['members','สมาชิก'],['staffs','เจ้าหน้าที่'],['settings','ตั้งค่า']] : []);
+  if(!tabs.some(t => t[0] === staffTab)) staffTab = 'record';
+  view(`
+  <section class="sec-head"><h1 style="margin:0">${isAdmin ? 'ระบบหลังบ้าน' : 'จุดรับขยะ'}</h1><button class="btn btn-ghost btn-sm" id="sOut">ออกจากระบบ</button></section>
+  <div class="tabs">${tabs.map(([k,t]) => `<button class="tab ${staffTab===k?'on':''}" data-t="${k}">${t}</button>`).join('')}</div>
+  <div id="sBody"></div>`);
+  $$('.tab').forEach(b => b.onclick = () => { stopScanner(); staffTab = b.dataset.t; pageStaff(); });
+  $('#sOut').onclick = async () => { try{ await api('logout', {}, S.stoken); }catch(e){} S.stoken=''; S.staff=null; save('yd_stoken',''); save('yd_staff',''); renderShell(); pageStaff(); };
+  ({ record:tabRecord, summary:tabSummary, redeems:tabRedeems, rewards:tabRewards, types:tabTypes, members:tabMembers, staffs:tabStaffs, settings:tabSettings })[staffTab]();
+}
+
+/* ---------- บันทึกขยะ ---------- */
+const R = { member:null, lines:[], photo:'' };
+function tabRecord(){
+  R.member = null; R.lines = [{ wasteTypeId: (S.pub.wasteTypes[0]||{}).id || '', quantity:'' }]; R.photo = '';
+  $('#sBody').innerHTML = `
+  <div class="card">
+    <h3>1. ค้นหาสมาชิก</h3>
+    <div class="row"><input id="fq" placeholder="เบอร์โทร หรือ รหัสสมาชิก (YD-0001)" inputmode="text"><button class="btn btn-primary" id="fBtn">ค้นหา</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn btn-soft btn-sm" id="scanBtn">${ic('qr',18)} สแกน QR บัตรสมาชิก</button>
+      <button class="btn btn-ghost btn-sm" id="newMemBtn">+ สมัครสมาชิกให้</button>
+    </div>
+    <div id="scanner"></div>
+    <div id="newMem"></div>
+    <div id="found"></div>
+  </div>
+  <div id="step2"></div>
+  <div class="card" style="margin-top:14px">
+    <h3>รายการที่บันทึกล่าสุด</h3><div id="recent"><div class="skeleton" style="height:60px"></div></div>
+  </div>`;
+  $('#fBtn').onclick = e => busy(e.currentTarget, () => findMember($('#fq').value));
+  $('#fq').onkeydown = e => { if(e.key === 'Enter') $('#fBtn').click(); };
+  $('#scanBtn').onclick = startScanner;
+  $('#newMemBtn').onclick = showNewMember;
+  loadRecent();
+}
+async function findMember(q){
+  const m = await api('staffFindMember', { query:q }, S.stoken);
+  R.member = m;
+  $('#newMem').innerHTML = '';
+  $('#found').innerHTML = `<div class="found"><div><div class="nm">${esc(m.name)}</div><div class="small muted">${esc(m.memberId)} · ${esc(m.phoneMasked)}</div></div><span class="pts"><b>${n(m.points)}</b> แต้ม</span></div>`;
+  renderStep2();
+}
+function showNewMember(){
+  $('#found').innerHTML = '';
+  $('#newMem').innerHTML = `<div class="notice" style="margin-top:12px">
+    <label class="f" for="nn">ชื่อ-นามสกุล</label><input id="nn">
+    <label class="f" for="np">เบอร์โทรศัพท์</label><input id="np" inputmode="tel">
+    <label class="f" for="npin">PIN 6 หลัก (ให้สมาชิกตั้งเอง)</label><input id="npin" type="password" inputmode="numeric" maxlength="6">
+    <label class="check"><input type="checkbox" id="nc"><span>สมาชิกยินยอมให้อยู่ดีมีแต้มเก็บชื่อและเบอร์โทรเพื่อใช้ในระบบสะสมแต้ม · <a href="#/privacy" target="_blank" rel="noopener">นโยบายความเป็นส่วนตัว</a></span></label>
+    <button class="btn btn-primary btn-block" id="nBtn">สมัครและเลือกสมาชิกคนนี้</button></div>`;
+  $('#nBtn').onclick = e => busy(e.currentTarget, async () => {
+    const m = await api('staffRegister', { name:$('#nn').value, phone:$('#np').value, pin:$('#npin').value, consent:$('#nc').checked }, S.stoken);
+    toast('สมัครสำเร็จ รหัส ' + m.memberId);
+    await findMember(m.memberId);
+  });
+}
+function lineOptions(sel){ return S.pub.wasteTypes.map(t => `<option value="${esc(t.id)}" ${t.id===sel?'selected':''}>${esc(t.name)} (${n(t.pointsPerUnit)}/${esc(t.unit)})</option>`).join(''); }
+function rp(v){ return Math.round(Number(v)); }  // แต้มเป็นจำนวนเต็มเสมอ
+function linePoints(l){ const t = S.pub.wasteTypes.find(x => x.id === l.wasteTypeId); return t ? rp((Number(l.quantity)||0) * t.pointsPerUnit) : 0; }
+function renderStep2(){
+  const dps = S.pub.dropoffs;
+  $('#step2').innerHTML = `
+  <div class="card" style="margin-top:14px">
+    <h3>2. ขยะที่นำมา</h3>
+    <div id="lines"></div>
+    <button class="btn btn-soft btn-sm" id="addLine">+ เพิ่มประเภทขยะ</button>
+    <div class="total"><span>รวมแต้มที่จะได้</span><b id="totalPts">0</b></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <h3>3. รูปยืนยัน</h3>
+    <label class="photo-drop" id="pDrop">${ic('camera',32)}<span>แตะเพื่อถ่ายรูปขยะบนตาชั่ง</span><span class="small muted">รูปจะถูกย่อขนาดอัตโนมัติก่อนส่ง</span><input type="file" id="pIn" accept="image/*" capture="environment"></label>
+    <img id="pPrev" class="photo-prev" hidden alt="รูปยืนยัน">
+    <label class="f" for="dp">จุดรับขยะ</label>
+    <select id="dp">${dps.map(d => `<option value="${esc(d.id)}">${esc(d.name)}</option>`).join('')}</select>
+    <label class="f" for="nt">หมายเหตุ (ถ้ามี)</label><input id="nt">
+  </div>
+  <button class="btn btn-primary btn-lg btn-block" id="saveRec" style="margin-top:14px">บันทึกและให้แต้ม</button>`;
+  drawLines();
+  $('#addLine').onclick = () => { R.lines.push({ wasteTypeId:(S.pub.wasteTypes[0]||{}).id||'', quantity:'' }); drawLines(); };
+  $('#pIn').onchange = async e => {
+    const f = e.target.files[0]; if(!f) return;
+    try{ R.photo = await compressImage(f, 1280, .72); $('#pPrev').src = R.photo; $('#pPrev').hidden = false; $('#pDrop').querySelector('span').textContent = 'แตะเพื่อถ่ายใหม่'; }
+    catch(err){ toast(err.message, true); }
+  };
+  $('#saveRec').onclick = e => busy(e.currentTarget, saveRecord);
+}
+function drawLines(){
+  const unitOf = id => (S.pub.wasteTypes.find(t => t.id === id) || {}).unit || '';
+  $('#lines').innerHTML = R.lines.map((l,i) => `
+    <div class="line-row">
+      <select data-i="${i}" class="lt">${lineOptions(l.wasteTypeId)}</select>
+      <input data-i="${i}" class="lq" type="number" inputmode="decimal" min="0" step="0.01" placeholder="${esc(unitOf(l.wasteTypeId))}" value="${esc(l.quantity)}">
+      <button class="icon-btn" data-i="${i}" aria-label="ลบรายการ" ${R.lines.length<2?'disabled':''}>×</button>
+      <div class="lp" id="lp${i}">= ${n(linePoints(l))} แต้ม</div>
+    </div>`).join('');
+  $$('#lines .lt').forEach(s => s.onchange = () => { R.lines[s.dataset.i].wasteTypeId = s.value; drawLines(); });
+  $$('#lines .lq').forEach(s => s.oninput = () => { R.lines[s.dataset.i].quantity = s.value; $('#lp'+s.dataset.i).textContent = '= ' + n(linePoints(R.lines[s.dataset.i])) + ' แต้ม'; updTotal(); });
+  $$('#lines .icon-btn').forEach(b => b.onclick = () => { R.lines.splice(Number(b.dataset.i),1); drawLines(); });
+  updTotal();
+}
+function updTotal(){ $('#totalPts').textContent = n(rp(R.lines.reduce((a,l) => a + linePoints(l), 0))); }
+async function saveRecord(){
+  if(!R.member) throw new Error('กรุณาค้นหาสมาชิกก่อน');
+  const items = R.lines.filter(l => Number(l.quantity) > 0);
+  if(!items.length) throw new Error('กรุณาใส่น้ำหนักหรือจำนวนขยะ');
+  const d = await api('staffRecordWaste', { memberId:R.member.memberId, items, photo:R.photo, dropoffId:$('#dp').value, note:$('#nt').value }, S.stoken);
+  $('#found').innerHTML = ''; $('#step2').innerHTML = `
+  <div class="card success" style="margin-top:14px">
+    <div class="big">+${n(d.earned)}</div><p class="kanit" style="margin:.4em 0 0">แต้มให้ ${esc(d.name)} (${esc(d.memberId)})</p>
+    <p class="muted" style="margin:.2em 0 1em">ยอดแต้มคงเหลือ ${n(d.balance)} แต้ม</p>
+    <button class="btn btn-primary btn-lg" id="nextRec">บันทึกรายการถัดไป</button>
+  </div>`;
+  $('#nextRec').onclick = tabRecord;
+  loadRecent();
+}
+async function loadRecent(){
+  try{
+    const rs = await api('staffRecent', {}, S.stoken);
+    const el = $('#recent'); if(!el) return;
+    el.innerHTML = rs.map(r => `<div class="list-item"><div><div class="kanit">${esc(r.memberName)} <span class="muted small">${esc(r.memberId)}</span></div><div class="small muted">${esc(r.wasteName)}${r.quantity?` · ${n(r.quantity)} ${esc(r.unit)}`:''} · ${dt(r.createdAt)}${r.staffName?` · โดย ${esc(r.staffName)}`:''}${r.photoUrl?` · <a href="${esc(r.photoUrl)}" target="_blank" rel="noopener">ดูรูป</a>`:''}</div></div><div class="${r.points<0?'minus':'plus'}">${r.points>0?'+':''}${n(r.points)}</div></div>`).join('') || '<p class="muted">ยังไม่มีรายการ</p>';
+  }catch(e){ const el=$('#recent'); if(el) el.innerHTML = `<p class="muted">${esc(e.message)}</p>`; }
+}
+
+/* ---------- สแกน QR ---------- */
+let scanner = null;
+function loadScript(src){ return new Promise((res,rej) => { const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('โหลดตัวสแกนไม่ได้')); document.head.appendChild(s); }); }
+async function startScanner(){
+  try{
+    if(!window.Html5Qrcode) await loadScript('https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js');
+    stopScanner();
+    scanner = new Html5Qrcode('scanner');
+    await scanner.start({ facingMode:'environment' }, { fps:10, qrbox:220 }, async text => { stopScanner(); $('#fq').value = text; try{ await findMember(text); }catch(e){ toast(e.message,true); } });
+  }catch(e){ toast('เปิดกล้องไม่ได้ ใช้การพิมพ์เบอร์หรือรหัสแทน', true); }
+}
+function stopScanner(){ if(scanner){ const s = scanner; scanner = null; s.stop().then(() => s.clear()).catch(()=>{}); } }
+
+/* ---------- ภาพรวม ---------- */
+async function tabSummary(){
+  $('#sBody').innerHTML = '<div class="skeleton"></div>';
+  const d = await api('adminSummary', {}, S.stoken).catch(e => { toast(e.message,true); return null; }); if(!d) return;
+  $('#sBody').innerHTML = `<div class="stats four">
+    <div class="stat"><div class="v">${n(d.members)}</div><div class="k">สมาชิกทั้งหมด</div></div>
+    <div class="stat"><div class="v">${n(d.totalKg)}</div><div class="k">กิโลกรัมที่รับแล้ว</div></div>
+    <div class="stat"><div class="v">${n(d.pointsIssued)}</div><div class="k">แต้มที่ให้ไปทั้งหมด</div></div>
+    <div class="stat"><div class="v">${n(d.pointsOutstanding)}</div><div class="k">แต้มคงค้างในระบบ</div></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <h3>การเงิน (ประมาณการ)</h3>
+    <div class="bal"><span>รายได้จากการขายขยะที่รับมาแล้ว</span><b>฿${n(d.revenue)}</b></div>
+    <div class="bal"><span>มูลค่าแต้มที่ให้สมาชิกไปทั้งหมด</span><b>฿${n(d.issuedValue)}</b></div>
+    <div class="bal last"><span>ส่วนต่างไว้ใช้จ่ายค่าส่ง ค่าขน ฯลฯ</span><b style="color:${d.revenue - d.issuedValue < 0 ? 'var(--danger)' : 'var(--forest-2)'}">฿${n(Math.round((d.revenue - d.issuedValue) * 100) / 100)}</b></div>
+    <p class="hint">ถ้าสมาชิกทุกคนแลกแต้มที่มีอยู่ตอนนี้ ต้องใช้ของรางวัลมูลค่าประมาณ <b>฿${n(d.outstandingValue)}</b> · ${n(d.pointsPerBaht)} แต้ม = 1 บาท · รายได้คำนวณจากราคาขายต่อที่ตั้งไว้ ณ วันที่รับขยะ ราคาขายจริงอาจต่างไป</p>
+  </div>
+  <div class="notice" style="margin-top:14px">วันนี้บันทึกขยะไปแล้ว <b>${n(d.todayRecords)}</b> รายการ</div>
+  ${d.pendingRedemptions ? `<div class="notice amber" style="margin-top:10px">มีคำขอแลกของรอดำเนินการ <b>${n(d.pendingRedemptions)}</b> รายการ · <a href="#" id="goRed">ไปที่คำขอแลกของ</a></div>` : ''}`;
+  if($('#goRed')) $('#goRed').onclick = ev => { ev.preventDefault(); staffTab = 'redeems'; pageStaff(); };
+}
+
+/* ---------- คำขอแลกของ ---------- */
+let redeemFilter = 'open';
+async function tabRedeems(){
+  const F = [['open','รอดำเนินการ'],['shipped','จัดส่งแล้ว'],['done','ได้รับแล้ว'],['cancelled','ยกเลิก'],['','ทั้งหมด']];
+  $('#sBody').innerHTML = `<div class="chips" id="rf">${F.map(([k,t]) => `<button data-k="${k}" class="${redeemFilter===k?'on':''}">${t}</button>`).join('')}</div><div id="rList"><div class="skeleton"></div></div>`;
+  $$('#rf button').forEach(b => b.onclick = () => { redeemFilter = b.dataset.k; tabRedeems(); });
+  const list = await api('adminRedemptions', { status:redeemFilter }, S.stoken).catch(e => { toast(e.message,true); return null; }); if(!list) return;
+  $('#rList').innerHTML = list.map(r => `<div class="card" data-id="${esc(r.redeemId)}">
+    <div class="sec-head" style="margin-bottom:4px"><h3 style="margin:0">${esc(r.rewardName)}</h3>${stChip(r.status)}</div>
+    <div class="small muted">${esc(r.redeemId)} · ${dt(r.createdAt)} · ${n(r.points)} แต้ม · สมาชิก ${esc(r.memberName)} (${esc(r.memberId)})</div>
+    <div class="notice" style="margin:10px 0"><b class="kanit">${esc(METHOD[r.method] || '')}</b>${r.method === 'pickup' ? ' · ' + esc(dropName(r.dropoffId)) : ''}${r.method === 'coupon' ? ' · รหัส <b>' + esc(r.redeemId) + '</b>' : ''}<br>${esc(r.recipientName)} · <a href="tel:${esc(r.phone)}">${esc(r.phone)}</a>${r.address ? '<br>' + esc(r.address) : ''}${r.otherContact ? `<br>ติดต่ออื่น: ${esc(r.otherContact)}` : ''}</div>
+    ${r.status === 'cancelled' ? `<p class="small muted" style="margin:0">เหตุผลที่ยกเลิก: ${esc(r.statusNote)}</p>` : `
+    <div class="row" style="flex-wrap:wrap">
+      <select class="rs" style="flex:1 1 170px">${Object.keys(STATUS).map(s => `<option value="${s}" ${s===r.status?'selected':''}>${STATUS[s][0]}</option>`).join('')}</select>
+      <input class="rn" style="flex:2 1 220px" placeholder="ข้อความถึงสมาชิก เช่น เลขพัสดุ" value="${esc(r.statusNote)}">
+      <button class="btn btn-primary rsv">อัปเดต</button>
+    </div>`}
+  </div>`).join('') || '<p class="muted">ไม่มีรายการ</p>';
+  $$('#rList .rsv').forEach(b => b.onclick = e => {
+    const card = b.closest('.card'), status = $('.rs',card).value;
+    if(status === 'cancelled' && !confirm('ยกเลิกคำขอนี้และคืนแต้มให้สมาชิก?\n(ใส่เหตุผลในช่องข้อความด้วย)')) return;
+    busy(e.currentTarget, async () => {
+      await api('adminUpdateRedemption', { redeemId:card.dataset.id, status, note:$('.rn',card).value }, S.stoken);
+      toast('อัปเดตสถานะแล้ว'); tabRedeems();
+    });
+  });
+}
+
+/* ---------- ของรางวัล ---------- */
+async function tabRewards(){
+  $('#sBody').innerHTML = '<div class="skeleton"></div>';
+  const list = await api('adminRewards', {}, S.stoken).catch(e => { toast(e.message,true); return null; }); if(!list) return;
+  const ppb = Number(S.pub.settings.pointsPerBaht || 10);
+  $('#sBody').innerHTML = `<div class="card">
+    <div class="sec-head" style="margin-bottom:4px"><h3 style="margin:0">ของรางวัลทั้งหมด (${list.length})</h3><button class="btn btn-primary btn-sm" id="rwNew">+ เพิ่มของรางวัล</button></div>
+    <p class="small muted" style="margin:0 0 6px">${n(ppb)} แต้ม = 1 บาท · รายการที่จางคือปิดการแสดงอยู่</p>
+    ${list.map(r => {
+      const low = r.cost > 0 && r.points < r.cost * ppb;
+      const out = r.stock !== '' && Number(r.stock) <= 0;
+      return `<div class="rw-row ${r.active ? '' : 'off'}">
+        <div class="rw-thumb">${rewardImg(r)}</div>
+        <div style="flex:1;min-width:0">
+          <div class="kanit" style="font-weight:600;color:var(--forest-2)">${esc(r.name)}</div>
+          <div class="small muted">${n(r.points)} แต้ม · ต้นทุน ฿${n(r.cost)} · ${r.stock === '' ? 'ไม่จำกัดจำนวน' : 'เหลือ ' + n(r.stock)}</div>
+          <div class="chiprow" style="margin-top:4px"><span class="chip">${esc(CAT[r.category] || r.category)}</span>${r.kind === 'coupon' ? '<span class="chip" style="background:var(--amber-soft);color:#7A4B00">คูปอง</span>' : ''}${r.active ? '' : '<span class="chip" style="background:#EEE;color:#555">ซ่อนอยู่</span>'}${out ? '<span class="chip" style="background:var(--danger-soft);color:var(--danger)">ของหมด</span>' : ''}${low ? '<span class="chip" style="background:var(--danger-soft);color:var(--danger)">แต้มต่ำกว่าต้นทุน</span>' : ''}</div>
+        </div>
+        <button class="btn btn-soft btn-sm" data-ed="${esc(r.rewardId)}">แก้ไข</button>
+      </div>`; }).join('') || '<p class="muted">ยังไม่มีของรางวัล</p>'}
+  </div>`;
+  $('#rwNew').onclick = () => rewardEditor({ category:'local', kind:'item', active:true, images:[], stock:'', sort:list.length + 1 });
+  $$('[data-ed]').forEach(b => b.onclick = () => rewardEditor(list.find(r => r.rewardId === b.dataset.ed)));
+}
+function rewardEditor(r){
+  const ppb = Number(S.pub.settings.pointsPerBaht || 10);
+  const E = { images:(r.images || []).slice(), photos:[] };   // photos = รูปใหม่ (data URL) ที่ยังไม่อัปโหลด
+  $('#sBody').innerHTML = `<div class="card">
+    <h3>${r.rewardId ? 'แก้ไขของรางวัล' : 'เพิ่มของรางวัลใหม่'}</h3>
+    <label class="f" for="e_n">ชื่อของรางวัล</label><input id="e_n" value="${esc(r.name || '')}" placeholder="เช่น น้ำมันพืช 1 ลิตร">
+    <label class="f" for="e_c">หมวดหมู่</label>
+    <select id="e_c">${Object.keys(CAT).map(k => `<option value="${k}" ${r.category===k?'selected':''}>${CAT[k]}</option>`).join('')}</select>
+    <label class="f">ประเภท</label>
+    <div class="methods">
+      <label class="method"><input type="radio" name="e_k" value="item" ${r.kind!=='coupon'?'checked':''}><span><b class="kanit">ของชิ้น</b><span class="small muted">สมาชิกเลือกรับที่จุดรับขยะ / อาสาส่ง / ขนส่ง</span></span></label>
+      <label class="method"><input type="radio" name="e_k" value="coupon" ${r.kind==='coupon'?'checked':''}><span><b class="kanit">คูปอง</b><span class="small muted">ได้รหัสไปแสดงที่ร้าน ไม่ต้องส่งของ</span></span></label>
+    </div>
+    <div class="grid2" style="gap:12px">
+      <div><label class="f" for="e_cost">ต้นทุน (บาท)</label><input id="e_cost" type="number" min="0" step="1" value="${esc(r.cost ?? '')}"></div>
+      <div><label class="f" for="e_p">แต้มที่ใช้แลก</label><input id="e_p" type="number" min="1" step="10" value="${esc(r.points ?? '')}"><div class="hint" id="e_ph"></div></div>
+    </div>
+    <button class="btn btn-ghost btn-sm" id="e_calc" type="button" style="margin-top:8px">${ppb === 1 ? 'ตั้งแต้มเท่ากับต้นทุน' : 'คำนวณแต้มจากต้นทุน (× ' + n(ppb) + ')'}</button>
+    <label class="f" for="e_s">จำนวนในสต็อก</label><input id="e_s" type="number" min="0" step="1" value="${esc(r.stock ?? '')}" placeholder="เว้นว่าง = ไม่จำกัด">
+    <div class="hint">ระบบตัดสต็อกอัตโนมัติเมื่อมีคนแลก และคืนให้เมื่อยกเลิกคำขอ</div>
+    <label class="f" for="e_sp">สนับสนุนโดย (ถ้ามี)</label><input id="e_sp" value="${esc(r.sponsor || '')}" placeholder="เช่น ชื่อร้านหรือผู้สนับสนุนของรางวัลชิ้นนี้">
+    <div class="hint">แสดงบนการ์ดของรางวัลว่า "สนับสนุนโดย ..." เว้นว่าง = ไม่แสดง</div>
+    <label class="f" for="e_d">รายละเอียด</label><textarea id="e_d" rows="3" placeholder="บอกขนาด วิธีใช้ หรือเงื่อนไข เช่น ใช้ได้ถึงวันไหน">${esc(r.description || '')}</textarea>
+    <label class="f">รูปภาพ (สูงสุด 6 รูป · รูปแรกคือรูปหลัก)</label>
+    <div class="imgs" id="e_imgs"></div>
+    <label class="check"><input type="checkbox" id="e_a" ${r.active!==false?'checked':''}><span><b>เปิดแสดง</b> บนหน้าเว็บ (ติ๊กออก = ซ่อน ข้อมูลยังอยู่)</span></label>
+    <label class="f" for="e_o">ลำดับการแสดง</label><input id="e_o" type="number" min="1" step="1" value="${esc(r.sort || 1)}" style="max-width:140px">
+    <div class="grid2" style="margin-top:18px"><button class="btn btn-primary btn-lg" id="e_save">บันทึก</button><button class="btn btn-ghost btn-lg" id="e_back">ยกเลิก</button></div>
+  </div>`;
+  const hint = () => {
+    const c = Number($('#e_cost').value), p = Number($('#e_p').value);
+    $('#e_ph').innerHTML = c > 0 && p > 0 ? (p < c * ppb ? `<span style="color:var(--danger)">ต่ำกว่าต้นทุน (ควรอย่างน้อย ${n(c * ppb)} แต้ม)</span>` : `≈ ฿${n(p / ppb)}`) : '';
+  };
+  $('#e_cost').oninput = hint; $('#e_p').oninput = hint; hint();
+  $('#e_calc').onclick = () => { const c = Number($('#e_cost').value); if(c > 0){ $('#e_p').value = rp(c * ppb); hint(); } else toast('ใส่ต้นทุนก่อน', true); };
+  const drawImgs = () => {
+    const all = E.images.map(u => ({ src:u, kind:'old' })).concat(E.photos.map(u => ({ src:u, kind:'new' })));
+    $('#e_imgs').innerHTML = all.map((x,i) => `<div class="im"><img src="${esc(x.src)}" alt=""><button class="x" data-i="${i}" aria-label="ลบรูป">×</button>${i === 0 ? '<span class="cover">รูปหลัก</span>' : `<button class="mk" data-m="${i}">ตั้งรูปหลัก</button>`}</div>`).join('')
+      + (all.length < 6 ? `<label class="add">+ เพิ่มรูป<input type="file" id="e_f" accept="image/*" multiple hidden></label>` : '');
+    const nOld = E.images.length;
+    $$('#e_imgs .x').forEach(b => b.onclick = () => { const i = +b.dataset.i; if(i < nOld) E.images.splice(i,1); else E.photos.splice(i - nOld,1); drawImgs(); });
+    $$('#e_imgs .mk').forEach(b => b.onclick = () => {
+      const i = +b.dataset.m;
+      if(i < nOld){ E.images.unshift(E.images.splice(i,1)[0]); }
+      else if(nOld === 0){ E.photos.unshift(E.photos.splice(i,1)[0]); }
+      else toast('บันทึกรูปใหม่ก่อน แล้วค่อยตั้งเป็นรูปหลัก', true);
+      drawImgs();
+    });
+    if($('#e_f')) $('#e_f').onchange = async ev => {
+      const files = [...ev.target.files].slice(0, 6 - all.length);
+      for(const f of files){ try{ E.photos.push(await compressImage(f, 1200, .8)); }catch(err){ toast(err.message, true); } }
+      drawImgs();
+    };
+  };
+  drawImgs();
+  $('#e_back').onclick = tabRewards;
+  $('#e_save').onclick = e => busy(e.currentTarget, async () => {
+    await api('adminSaveReward', {
+      rewardId:r.rewardId || '', name:$('#e_n').value, category:$('#e_c').value, kind:($('input[name=e_k]:checked')||{}).value,
+      cost:$('#e_cost').value, points:$('#e_p').value, stock:$('#e_s').value, description:$('#e_d').value, sponsor:$('#e_sp').value,
+      active:$('#e_a').checked, sort:$('#e_o').value, images:E.images, newPhotos:E.photos
+    }, S.stoken);
+    toast('บันทึกของรางวัลแล้ว'); await refreshPublic(); tabRewards();
+  });
+}
+
+/* ---------- ประเภทขยะ ---------- */
+async function tabTypes(){
+  $('#sBody').innerHTML = '<div class="skeleton"></div>';
+  const list = await api('adminWasteTypes', {}, S.stoken).catch(e => { toast(e.message,true); return null; }); if(!list) return;
+  const rowHtml = t => `<tr data-id="${esc(t.wasteTypeId||'')}">
+    <td><input class="tn" value="${esc(t.name||'')}" placeholder="ชื่อประเภท"><input class="td" value="${esc(t.description||'')}" placeholder="คำแนะนำ เช่น ล้างให้สะอาด" style="margin-top:6px;font-size:.92rem;min-height:42px"></td>
+    <td style="width:110px"><input class="tr" type="number" min="0" step="1" value="${esc(t.pointsPerUnit ?? '')}"><div class="small muted tsh"></div></td>
+    <td style="width:110px"><input class="tp" type="number" min="0" step="0.1" value="${esc(t.salePrice ?? '')}"></td>
+    <td style="width:90px"><input class="tu" value="${esc(t.unit||'กก.')}"></td>
+    <td style="width:70px;text-align:center"><input class="ta" type="checkbox" ${t.active!==false?'checked':''} style="width:24px;height:24px;min-height:0;accent-color:var(--forest)"></td>
+    <td style="width:90px"><button class="btn btn-primary btn-sm ts">บันทึก</button></td></tr>`;
+  $('#sBody').innerHTML = `<div class="card">
+    <h3>ประเภทขยะและสูตรแต้ม</h3><p class="small muted">แต้ม = จำนวน × แต้มต่อหน่วย (ปัดเป็นจำนวนเต็ม) · ${n(S.pub.settings.pointsPerBaht || 10)} แต้ม = 1 บาท · "ขาย ฿/หน่วย" คือราคาที่กลุ่มขายต่อได้ ใช้คำนวณรายได้และสัดส่วนที่คืนให้สมาชิก · ติ๊ก "เปิดแสดง" ออก = ซ่อนประเภทนั้นจากหน้าเว็บและหน้าบันทึกขยะ (ข้อมูลเดิมยังอยู่ เปิดกลับได้ทุกเมื่อ)</p>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>ประเภท</th><th>แต้ม/หน่วย</th><th>ขาย ฿/หน่วย</th><th>หน่วย</th><th>เปิดแสดง</th><th></th></tr></thead>
+    <tbody id="tBody">${list.map(rowHtml).join('')}</tbody></table></div>
+    <button class="btn btn-soft btn-sm" id="addType" style="margin-top:10px">+ เพิ่มประเภทขยะ</button></div>`;
+  const ppb = Number(S.pub.settings.pointsPerBaht || 10);
+  const share = tr => { const r = Number($('.tr',tr).value), s = Number($('.tp',tr).value); $('.tsh',tr).textContent = s > 0 && r >= 0 ? `คืน ≈ ${Math.round(r / (s * ppb) * 100)}%` : ''; };
+  const bind = () => $$('#tBody .ts').forEach(b => {
+    const tr0 = b.closest('tr'); share(tr0); $('.tr',tr0).oninput = () => share(tr0); $('.tp',tr0).oninput = () => share(tr0);
+    b.onclick = e => {
+    const tr = b.closest('tr');
+    busy(e.currentTarget, async () => {
+      const saved = await api('adminSaveWasteType', { wasteTypeId:tr.dataset.id, name:$('.tn',tr).value, description:$('.td',tr).value, pointsPerUnit:$('.tr',tr).value, salePrice:$('.tp',tr).value, unit:$('.tu',tr).value, active:$('.ta',tr).checked, sort:[...tr.parentNode.children].indexOf(tr)+1 }, S.stoken);
+      tr.dataset.id = saved.wasteTypeId; toast('บันทึก ' + saved.name + ' แล้ว'); await refreshPublic();
+    });
+  }; });
+  bind();
+  $('#addType').onclick = () => { $('#tBody').insertAdjacentHTML('beforeend', rowHtml({ unit:'กก.', active:true })); bind(); };
+}
+
+/* ---------- สมาชิก ---------- */
+async function tabMembers(q=''){
+  $('#sBody').innerHTML = `<div class="card">
+    <div class="row"><input id="mq" placeholder="ค้นหาชื่อ เบอร์ หรือรหัสสมาชิก" value="${esc(q)}"><button class="btn btn-primary" id="mqBtn">ค้นหา</button></div>
+    <div id="mList" style="margin-top:12px"><div class="skeleton" style="height:80px"></div></div></div>`;
+  $('#mqBtn').onclick = () => tabMembers($('#mq').value);
+  $('#mq').onkeydown = e => { if(e.key === 'Enter') tabMembers($('#mq').value); };
+  const list = await api('adminMembers', { q }, S.stoken).catch(e => { toast(e.message,true); return []; });
+  $('#mList').innerHTML = list.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>สมาชิก</th><th>แต้ม</th><th>กก.</th><th></th></tr></thead><tbody>
+    ${list.map(m => `<tr><td><div class="kanit">${esc(m.name)}</div><div class="small muted">${esc(m.memberId)} · ${esc(m.phone)}</div></td><td class="kanit">${n(m.points)}</td><td>${n(m.totalKg)}</td>
+    <td style="white-space:nowrap"><button class="btn btn-soft btn-sm" data-pin="${esc(m.memberId)}">รีเซ็ต PIN</button> <button class="btn btn-ghost btn-sm" data-adj="${esc(m.memberId)}">ปรับแต้ม</button></td></tr>`).join('')}
+    </tbody></table></div>` : '<p class="muted">ไม่พบสมาชิก</p>';
+  $$('[data-pin]').forEach(b => b.onclick = e => {
+    const pin = prompt('ตั้ง PIN ใหม่ 6 หลักให้ ' + b.dataset.pin + '\n(ยืนยันตัวตนสมาชิกก่อนรีเซ็ต)'); if(!pin) return;
+    busy(e.currentTarget, async () => { await api('adminResetPin', { memberId:b.dataset.pin, pin }, S.stoken); toast('รีเซ็ต PIN แล้ว'); });
+  });
+  $$('[data-adj]').forEach(b => b.onclick = e => {
+    const delta = prompt('ปรับแต้ม ' + b.dataset.adj + '\nใส่จำนวน เช่น 10 (เพิ่ม) หรือ -10 (ลด)'); if(!delta) return;
+    const note = prompt('เหตุผลในการปรับแต้ม (จำเป็น)'); if(!note) return;
+    busy(e.currentTarget, async () => { const r = await api('adminAdjustPoints', { memberId:b.dataset.adj, delta, note }, S.stoken); toast('ปรับแล้ว คงเหลือ ' + n(r.balance) + ' แต้ม'); tabMembers($('#mq') ? $('#mq').value : ''); });
+  });
+}
+
+/* ---------- เจ้าหน้าที่ ---------- */
+async function tabStaffs(){
+  $('#sBody').innerHTML = '<div class="skeleton"></div>';
+  const list = await api('adminStaff', {}, S.stoken).catch(e => { toast(e.message,true); return null; }); if(!list) return;
+  $('#sBody').innerHTML = `<div class="card"><h3>บัญชีเจ้าหน้าที่</h3>
+    <p class="small muted">"เจ้าหน้าที่จุดรับ" บันทึกขยะได้อย่างเดียว · "แอดมิน" แก้ไขได้ทุกอย่าง</p>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>ชื่อผู้ใช้</th><th>ชื่อที่แสดง</th><th>สิทธิ์</th><th>ใช้งาน</th><th>รหัสผ่านใหม่</th><th></th></tr></thead><tbody id="stBody">
+    ${list.map(stRow).join('')}</tbody></table></div>
+    <button class="btn btn-soft btn-sm" id="addSt" style="margin-top:10px">+ เพิ่มเจ้าหน้าที่</button></div>`;
+  bindSt();
+  $('#addSt').onclick = () => { $('#stBody').insertAdjacentHTML('beforeend', stRow({ role:'staff', active:true })); bindSt(); };
+}
+function stRow(s){
+  return `<tr data-id="${esc(s.staffId||'')}"><td style="min-width:120px"><input class="su" value="${esc(s.username||'')}" autocapitalize="none"></td>
+  <td style="min-width:140px"><input class="sd" value="${esc(s.displayName||'')}"></td>
+  <td style="min-width:150px"><select class="sr"><option value="staff" ${s.role!=='admin'?'selected':''}>เจ้าหน้าที่จุดรับ</option><option value="admin" ${s.role==='admin'?'selected':''}>แอดมิน</option></select></td>
+  <td style="text-align:center"><input class="sa" type="checkbox" ${s.active?'checked':''} style="width:24px;height:24px;min-height:0;accent-color:var(--forest)"></td>
+  <td style="min-width:150px"><input class="sp" type="password" placeholder="${s.staffId?'เว้นว่าง = ไม่เปลี่ยน':'อย่างน้อย 8 ตัว'}" autocomplete="new-password"></td>
+  <td><button class="btn btn-primary btn-sm ss">บันทึก</button></td></tr>`;
+}
+function bindSt(){
+  $$('#stBody .ss').forEach(b => b.onclick = e => {
+    const tr = b.closest('tr');
+    busy(e.currentTarget, async () => {
+      const s = await api('adminSaveStaff', { staffId:tr.dataset.id, username:$('.su',tr).value, displayName:$('.sd',tr).value, role:$('.sr',tr).value, active:$('.sa',tr).checked, password:$('.sp',tr).value }, S.stoken);
+      tr.dataset.id = s.staffId; $('.sp',tr).value = ''; $('.sp',tr).placeholder = 'เว้นว่าง = ไม่เปลี่ยน'; toast('บันทึก ' + s.username + ' แล้ว');
+    });
+  });
+}
+
+/* ---------- ตั้งค่า ---------- */
+async function tabSettings(){
+  $('#sBody').innerHTML = '<div class="skeleton"></div>';
+  const st = await api('adminSettings', {}, S.stoken).catch(e => { toast(e.message,true); return null; }); if(!st) return;
+  $('#sBody').innerHTML = `
+  <div class="card"><h3>โลโก้เว็บไซต์</h3>
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+      <div class="brand-logo" style="width:88px;height:88px;border-radius:22px" id="logoPrev">${st.logoUrl ? `<img src="${esc(st.logoUrl)}" alt="โลโก้">` : capSvg(80)}</div>
+      <label class="btn btn-soft" style="cursor:pointer">อัปโหลดโลโก้ใหม่<input type="file" id="logoIn" accept="image/*" hidden></label>
+    </div><p class="hint">แนะนำรูปสี่เหลี่ยมจัตุรัส พื้นหลังไม่โปร่งใส</p></div>
+  <div class="card"><h3>ลิงก์และข้อมูลติดต่อ</h3>
+    <h4 class="kanit" style="margin:4px 0 0;color:var(--forest-2)">อยู่ดีมีแต้ม</h4>
+    <label class="f">E-mail ของอยู่ดีมีแต้ม</label><input id="s_em" value="${esc(st.email)}">
+    <label class="f">ชื่อผู้ควบคุมข้อมูล (แสดงเฉพาะหน้านโยบายความเป็นส่วนตัว)</label><input id="s_dc" value="${esc(st.dataController)}">
+    <label class="f">ที่อยู่ผู้ควบคุมข้อมูล (แสดงเฉพาะหน้านโยบายความเป็นส่วนตัว)</label><textarea id="s_da" rows="2">${esc(st.dataControllerAddress)}</textarea>
+    <label class="f">ลิงก์ Facebook ของอยู่ดีมีแต้ม (ถ้ามี)</label><input id="s_bf" value="${esc(st.brandFacebook)}" placeholder="https://www.facebook.com/yoodeemeetaem">
+    <label class="f">ลิงก์ LINE OA ของอยู่ดีมีแต้ม (ถ้ามี)</label><input id="s_bl" value="${esc(st.brandLine)}" placeholder="https://lin.ee/...">
+    <label class="f">ลิงก์เพจ Facebook กลุ่มผู้ริเริ่ม ตลิ่งชันอยากอยู่ดี</label><input id="s_fp" value="${esc(st.facebookPage)}" placeholder="https://www.facebook.com/...">
+    <div class="hint">ใช้กับปุ่ม Facebook ท้ายเว็บ เฉพาะตอนที่แบรนด์ยังไม่มีเพจของตัวเอง</div>
+    <label class="check"><input type="checkbox" id="s_rp" ${String(st.requirePhoto)==='true'?'checked':''}><span>บังคับถ่ายรูปยืนยันทุกครั้งที่บันทึกขยะ</span></label>
+    <label class="f" for="s_pm">ส่งทางขนส่งได้เฉพาะของรางวัลตั้งแต่ (แต้ม)</label><input id="s_pm" type="number" min="0" step="10" value="${esc(st.postMinPoints || 500)}">
+    <div class="hint" style="margin-bottom:14px">ของรางวัลที่แต้มต่ำกว่านี้ เลือกได้แค่รับที่จุดรับขยะ หรืออาสาสมัครส่งถึงบ้าน</div>
+    <button class="btn btn-primary" id="setBtn">บันทึกการตั้งค่า</button></div>`;
+  $('#logoIn').onchange = async e => {
+    const f = e.target.files[0]; if(!f) return;
+    try{
+      const data = await compressImage(f, 512, .9);
+      const r = await api('adminUploadLogo', { photo:data }, S.stoken);
+      $('#logoPrev').innerHTML = `<img src="${esc(DEMO ? data : r.logoUrl)}" alt="โลโก้">`;
+      await refreshPublic(); if(DEMO){ S.pub.settings.logoUrl = data; } renderShell(); toast('เปลี่ยนโลโก้แล้ว');
+    }catch(err){ toast(err.message, true); }
+  };
+  $('#setBtn').onclick = e => busy(e.currentTarget, async () => {
+    await api('adminSaveSettings', { facebookPage:$('#s_fp').value, email:$('#s_em').value, dataController:$('#s_dc').value, dataControllerAddress:$('#s_da').value, brandFacebook:$('#s_bf').value, brandLine:$('#s_bl').value, requirePhoto:$('#s_rp').checked, postMinPoints:$('#s_pm').value }, S.stoken);
+    await refreshPublic(); renderShell(); toast('บันทึกการตั้งค่าแล้ว');
+  });
+}
+
+/* ---------- ย่อรูป ---------- */
+function compressImage(file, max, q){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file); const img = new Image();
+    img.onload = () => {
+      const s = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width*s); c.height = Math.round(img.height*s);
+      const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0,0,c.width,c.height); g.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', q));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('อ่านไฟล์รูปไม่ได้')); };
+    img.src = url;
+  });
+}
+
+/* =========================================================
+ *  โหมดทดลอง (ใช้เมื่อยังไม่ได้ใส่ API_URL)
+ * ========================================================= */
+const MOCK = (() => {
+  const ago = d => new Date(Date.now() - d*864e5).toISOString();
+  return {
+    settings:{ siteName:'อยู่ดีมีแต้ม', logoUrl:'', facebookPage:'', email:'YoodeeMeetaem@gmail.com', dataController:'สุธินี ศรีนอก', dataControllerAddress:'40 ถนนจรัญสนิทวงศ์ ซอย 73 แขวงบางพลัด เขตบางพลัด กรุงเทพมหานคร 10700', brandFacebook:'https://www.facebook.com/yoodeemeetaem/', brandLine:'https://lin.ee/q4KuQkd', requirePhoto:'true', pointsPerBaht:'10', postMinPoints:'500' },
+    wasteTypes:[
+      { wasteTypeId:'WT01', name:'ขวดพลาสติกใส (PET)', unit:'กก.', pointsPerUnit:21, salePrice:7, description:'ล้าง เทน้ำออก บีบให้แบน', active:true, sort:1 },
+      { wasteTypeId:'WT02', name:'ฝาขวดพลาสติก', unit:'กก.', pointsPerUnit:15, salePrice:3, description:'ล้างสะอาด แยกจากขวด', active:true, sort:2 },
+      { wasteTypeId:'WT03', name:'กระป๋องอะลูมิเนียม', unit:'กก.', pointsPerUnit:165, salePrice:55, description:'ล้าง เหยียบให้แบน', active:true, sort:3 },
+      { wasteTypeId:'WT04', name:'กระดาษ / ลังกระดาษ', unit:'กก.', pointsPerUnit:8, salePrice:2.8, description:'แห้ง ไม่เปื้อนอาหาร พับให้แบน', active:true, sort:4 },
+      { wasteTypeId:'WT05', name:'ขวดแก้ว', unit:'กก.', pointsPerUnit:2, salePrice:0.7, description:'ล้างสะอาด ไม่แตก', active:true, sort:5 }
+    ],
+    rewards:[
+      { rewardId:'RW01', sort:1, name:'ถุงขยะแยกประเภท', category:'household', points:80, description:'ถุงขยะสำหรับแยกขยะในบ้าน', imageUrls:'', stock:50, active:true, kind:'item', cost:8 },
+      { rewardId:'RW02', sort:2, name:'พัดสานไม้ไผ่', category:'local', points:600, description:'งานจักสานฝีมือคนในชุมชนตลิ่งชัน', imageUrls:'', stock:10, active:true, kind:'item', cost:60 },
+      { rewardId:'RW03', sort:3, name:'ยาดมสมุนไพร', category:'local', points:300, description:'ยาดมสมุนไพรทำมือจากชุมชน', imageUrls:'', stock:20, active:true, kind:'item', cost:30 },
+      { rewardId:'RW04', sort:4, name:'ส่วนลดกาแฟร้านตาฉิม', category:'local', points:200, description:'ส่วนลด 20 บาท แสดงรหัสคูปองที่ร้านตาฉิม', imageUrls:'', stock:50, active:true, kind:'coupon', cost:20 },
+      { rewardId:'RW05', sort:5, name:'ปุ๋ยหมักชีวภาพ', category:'green', points:400, description:'(ตัวอย่างสำหรับทดลอง)', imageUrls:'', stock:10, active:true, kind:'item', cost:40 }
+    ],
+    dropoffs:[{ dropoffId:'DP01', name:'ที่ทำการกลุ่มตลิ่งชันอยากอยู่ดี', address:'ถนนพุทธมณฑลสาย 1 ซอย 19 แขวงบางระมาด เขตตลิ่งชัน กรุงเทพมหานคร 10170', lat:'', lng:'', openHours:'(ใส่วันและเวลาเปิดรับ)', acceptedTypes:'ทุกประเภท', active:true }],
+    members:[{ memberId:'YD-0001', name:'สมชาย ใจดี', phone:'0812345678', pin:'246810', points:513, totalKg:10.4, createdAt:ago(40), status:'active' }],
+    staff:[
+      { staffId:'ST01', username:'admin', displayName:'ผู้ดูแลระบบ', password:'demo1234', role:'admin', active:true },
+      { staffId:'ST02', username:'staff1', displayName:'เจ้าหน้าที่จุดรับ 1', password:'demo1234', role:'staff', active:true }
+    ],
+    tx:[
+      { txId:'T1', memberId:'YD-0001', type:'earn', wasteName:'ขวดพลาสติกใส (PET)', quantity:6.2, unit:'กก.', points:130, saleValue:43.4, staffId:'ST02', note:'', createdAt:ago(30) },
+      { txId:'T2', memberId:'YD-0001', type:'earn', wasteName:'กระป๋องอะลูมิเนียม', quantity:2.2, unit:'กก.', points:363, saleValue:121, staffId:'ST02', note:'', createdAt:ago(12) },
+      { txId:'T3', memberId:'YD-0001', type:'earn', wasteName:'ฝาขวดพลาสติก', quantity:2, unit:'กก.', points:30, saleValue:6, staffId:'ST02', note:'', createdAt:ago(3) },
+      { txId:'T4', memberId:'YD-0001', type:'adjust', wasteName:'ปรับแต้มโดยเจ้าหน้าที่', quantity:'', unit:'', points:-10, staffId:'ST01', note:'แก้ไขน้ำหนักที่กรอกผิด', createdAt:ago(3) }
+    ],
+    redemptions:[],
+    sessions:{}
+  };
+})();
+function mockApi(action, p, token){
+  const M = MOCK, err = msg => { throw new Error(msg); };
+  const normPhone = v => { let d = String(v||'').replace(/\D/g,''); if(d.startsWith('66') && d.length===11) d='0'+d.slice(2); if(!/^0\d{8,9}$/.test(d)) err('เบอร์โทรไม่ถูกต้อง (เช่น 0812345678)'); return d; };
+  const checkPin = pin => { if(!/^\d{6}$/.test(pin)) err('PIN ต้องเป็นตัวเลข 6 หลัก'); if(/^(\d)\1{5}$/.test(pin) || '0123456789'.includes(pin) || '9876543210'.includes(pin)) err('PIN ง่ายเกินไป กรุณาตั้งใหม่ (ห้ามเลขเรียงหรือเลขซ้ำทั้งหมด)'); };
+  const mView = m => ({ memberId:m.memberId, name:m.name, phoneMasked:m.phone.slice(0,3)+'-xxx-'+m.phone.slice(-4), points:m.points, totalKg:Math.round(m.totalKg*100)/100, createdAt:m.createdAt });
+  const sView = s => ({ staffId:s.staffId, username:s.username, displayName:s.displayName, role:s.role, active:s.active });
+  const sess = (kind, id) => { const t = Math.random().toString(36).slice(2) + Date.now(); M.sessions[t] = { kind, id }; return t; };
+  const needMember = () => { const s = M.sessions[token]; if(!s || s.kind!=='member'){ onAuthExpired(action); err('กรุณาเข้าสู่ระบบใหม่'); } return M.members.find(m => m.memberId === s.id); };
+  const needStaff = admin => { const s = M.sessions[token]; if(!s || s.kind!=='staff'){ onAuthExpired(action); err('กรุณาเข้าสู่ระบบใหม่'); } const st = M.staff.find(x => x.staffId === s.id); if(admin && st.role!=='admin') err('เฉพาะแอดมินเท่านั้น'); return st; };
+  const nextId = (ids, pre, w) => pre + String(Math.max(0, ...ids.map(i => Number(String(i).match(/(\d+)$/)?.[1] || 0))) + 1).padStart(w,'0');
+  const normId = v => { const m = String(v||'').trim().match(/^yd-?(\d+)$/i); return m ? 'YD-' + String(Number(m[1])).padStart(4,'0') : String(v||'').trim(); };
+  const newMember = (name, phone, pin, consent) => {
+    if(!String(name||'').trim()) err('กรุณากรอกชื่อ'); phone = normPhone(phone); checkPin(String(pin||'')); if(!consent) err('กรุณากดยินยอมการเก็บข้อมูลก่อนสมัคร');
+    if(M.members.some(m => m.phone === phone)) err('เบอร์นี้สมัครไว้แล้ว กรุณาเข้าสู่ระบบ หรือติดต่อเจ้าหน้าที่หากลืม PIN');
+    const m = { memberId:nextId(M.members.map(x=>x.memberId),'YD-',4), name:String(name).trim(), phone, pin:String(pin), points:0, totalKg:0, createdAt:new Date().toISOString(), status:'active' };
+    M.members.push(m); return m;
+  };
+  switch(action){
+    case 'publicData': return {
+      settings:{...M.settings},
+      wasteTypes:M.wasteTypes.filter(t=>t.active).sort((a,b)=>a.sort-b.sort).map(t=>({ id:t.wasteTypeId, name:t.name, unit:t.unit, pointsPerUnit:Number(t.pointsPerUnit), description:t.description })),
+      rewards:M.rewards.filter(r=>r.active).sort((a,b)=>(a.sort||99)-(b.sort||99)).map(r=>({ id:r.rewardId, name:r.name, category:r.category, points:r.points, description:r.description, images:r.imageUrls?r.imageUrls.split('\n'):[], stock:r.stock, kind:r.kind==='coupon'?'coupon':'item', sponsor:r.sponsor||'' })),
+      dropoffs:M.dropoffs.filter(d=>d.active).map(d=>({ id:d.dropoffId, name:d.name, address:d.address, lat:d.lat, lng:d.lng, openHours:d.openHours, acceptedTypes:d.acceptedTypes }))
+    };
+    case 'register': { const m = newMember(p.name, p.phone, p.pin, p.consent); return { token:sess('member', m.memberId), member:mView(m) }; }
+    case 'memberLogin': { const ph = normPhone(p.phone); const m = M.members.find(x => x.phone === ph); if(!m || m.pin !== String(p.pin)) err('เบอร์โทรหรือ PIN ไม่ถูกต้อง'); return { token:sess('member', m.memberId), member:mView(m) }; }
+    case 'memberMe': {
+      const m = needMember(); const reds = M.redemptions.filter(r => r.memberId === m.memberId).slice().reverse();
+      return { member:mView(m), history:M.tx.filter(t=>t.memberId===m.memberId).slice().reverse(),
+        redemptions:reds.map(r => ({ redeemId:r.redeemId, rewardId:r.rewardId, rewardName:r.rewardName, points:r.points, status:r.status, statusNote:r.statusNote, createdAt:r.createdAt, method:r.method, dropoffId:r.dropoffId })),
+        lastShipping: reds.find(r => r.address) ? (r => ({ recipientName:r.recipientName, phone:r.phone, address:r.address, otherContact:r.otherContact }))(reds.find(r => r.address)) : { recipientName:m.name, phone:m.phone, address:'', otherContact:'' } };
+    }
+    case 'memberRedeem': {
+      const m = needMember();
+      const r = M.rewards.find(x => x.rewardId === p.rewardId && x.active); if(!r) err('ไม่พบของรางวัลนี้ หรือปิดการแลกแล้ว');
+      const method = r.kind === 'coupon' ? 'coupon' : String(p.method||'');
+      if(r.kind !== 'coupon' && !['pickup','volunteer','post'].includes(method)) err('กรุณาเลือกวิธีรับของ');
+      if(method === 'post' && r.points < Number(M.settings.postMinPoints)) err('ส่งทางขนส่งได้เฉพาะของรางวัลตั้งแต่ ' + M.settings.postMinPoints + ' แต้มขึ้นไป');
+      let recipientName = String(p.recipientName||'').trim() || m.name, phone = p.phone ? normPhone(p.phone) : m.phone, address = '', dropoffId = '';
+      if(method === 'pickup'){ dropoffId = p.dropoffId; if(!M.dropoffs.some(d => d.dropoffId === dropoffId)) err('กรุณาเลือกจุดรับของ'); }
+      if(method === 'volunteer' || method === 'post'){ if(!String(p.recipientName||'').trim()) err('กรุณากรอกชื่อ-นามสกุลผู้รับ'); address = String(p.address||'').trim(); if(address.length < 10) err('กรุณากรอกที่อยู่สำหรับจัดส่งให้ครบถ้วน'); }
+      if(r.stock !== '' && Number(r.stock) <= 0) err('ของรางวัลนี้หมดแล้ว');
+      if(m.points < r.points) err(`แต้มไม่พอ (มี ${m.points} แต้ม ต้องใช้ ${r.points} แต้ม)`);
+      m.points = rp(m.points - r.points); if(r.stock !== '') r.stock = Number(r.stock) - 1;
+      const redeemId = nextId(M.redemptions.map(x=>x.redeemId),'RD',5), now = new Date().toISOString();
+      M.redemptions.push({ redeemId, memberId:m.memberId, rewardId:r.rewardId, rewardName:r.name, points:r.points, status:'pending', recipientName, phone, address, otherContact:p.otherContact||'', statusNote:'', createdAt:now, method, dropoffId });
+      M.tx.push({ txId:'R'+Date.now(), memberId:m.memberId, type:'redeem', wasteName:'แลก: '+r.name, quantity:'', unit:'', points:-r.points, staffId:'', note:redeemId, createdAt:now });
+      return { redeemId, rewardName:r.name, points:r.points, balance:m.points, method };
+    }
+    case 'adminRedemptions': {
+      needStaff(true); const w = p.status || '';
+      return M.redemptions.filter(r => w==='open' ? (r.status==='pending'||r.status==='preparing') : (!w || r.status===w)).slice().reverse()
+        .map(r => ({ ...r, memberName:(M.members.find(m=>m.memberId===r.memberId)||{}).name||'' }));
+    }
+    case 'adminUpdateRedemption': {
+      const st = needStaff(true); const red = M.redemptions.find(r => r.redeemId === p.redeemId); if(!red) err('ไม่พบคำขอแลกของ');
+      if(!STATUS[p.status]) err('สถานะไม่ถูกต้อง');
+      if(red.status === 'cancelled') err('คำขอนี้ถูกยกเลิกและคืนแต้มไปแล้ว แก้ไขไม่ได้');
+      if(p.status === 'cancelled'){
+        if(!String(p.note||'').trim()) err('กรุณาใส่เหตุผลในการยกเลิก');
+        const m = M.members.find(x => x.memberId === red.memberId); m.points = rp(m.points + red.points);
+        const rw = M.rewards.find(x => x.rewardId === red.rewardId); if(rw && rw.stock !== '') rw.stock = Number(rw.stock) + 1;
+        M.tx.push({ txId:'C'+Date.now(), memberId:m.memberId, type:'refund', wasteName:'คืนแต้ม: '+red.rewardName, quantity:'', unit:'', points:red.points, staffId:st.staffId, note:red.redeemId+' '+p.note, createdAt:new Date().toISOString() });
+      }
+      red.status = p.status; red.statusNote = String(p.note||'').trim(); return true;
+    }
+    case 'logout': delete M.sessions[token]; return true;
+    case 'staffLogin': { const s = M.staff.find(x => x.username === String(p.username||'').trim().toLowerCase()); if(!s || !s.active || s.password !== p.password) err('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'); return { token:sess('staff', s.staffId), staff:sView(s) }; }
+    case 'staffFindMember': { needStaff(); const q = String(p.query||'').trim(); let m; if(/^yd-?\d+$/i.test(q)) m = M.members.find(x=>x.memberId===normId(q)); else { const d = q.replace(/\D/g,''); if(d.length>=9){ const ph = normPhone(d); m = M.members.find(x=>x.phone===ph); } } if(!m) err('ไม่พบสมาชิก ลองตรวจเบอร์โทรหรือรหัสสมาชิกอีกครั้ง'); return mView(m); }
+    case 'staffRegister': { needStaff(); return mView(newMember(p.name, p.phone, p.pin, p.consent)); }
+    case 'staffRecordWaste': {
+      const st = needStaff(); const m = M.members.find(x => x.memberId === normId(p.memberId)); if(!m) err('ไม่พบสมาชิก');
+      if(!p.items || !p.items.length) err('กรุณาเพิ่มรายการขยะอย่างน้อย 1 รายการ');
+      if(!p.photo && M.settings.requirePhoto === 'true') err('กรุณาถ่ายรูปยืนยันก่อนบันทึก');
+      let earned = 0; const lines = p.items.map(it => { const t = M.wasteTypes.find(x => x.wasteTypeId === it.wasteTypeId); const q = Math.round(Number(it.quantity)*100)/100; if(!t || !(q>0)) err('ข้อมูลขยะไม่ถูกต้อง'); const pts = rp(q*t.pointsPerUnit); earned = rp(earned + pts); if(/กก|kg/i.test(t.unit)) m.totalKg += q; M.tx.push({ txId:'T'+Date.now()+Math.random(), memberId:m.memberId, type:'earn', wasteName:t.name, quantity:q, unit:t.unit, points:pts, saleValue:Math.round(q*(t.salePrice||0)*100)/100, staffId:st.staffId, note:p.note||'', createdAt:new Date().toISOString(), photo:!!p.photo }); return { name:t.name, quantity:q, unit:t.unit, points:pts }; });
+      m.points = rp(m.points + earned); return { memberId:m.memberId, name:m.name, earned, balance:m.points, lines };
+    }
+    case 'staffRecent': { const st = needStaff(); return M.tx.filter(t => st.role==='admin' || t.staffId===st.staffId).slice().reverse().slice(0,30).map(t => ({ ...t, memberName:(M.members.find(m=>m.memberId===t.memberId)||{}).name||'', staffName:(M.staff.find(s=>s.staffId===t.staffId)||{}).displayName||'', photoUrl:'' })); }
+    case 'adminSummary': { needStaff(true); const today = new Date().toDateString(); return { members:M.members.length, totalKg:Math.round(M.members.reduce((a,m)=>a+m.totalKg,0)*100)/100, pointsIssued:rp(M.tx.filter(t=>t.type==='earn').reduce((a,t)=>a+t.points,0)), pointsOutstanding:rp(M.members.reduce((a,m)=>a+m.points,0)), todayRecords:M.tx.filter(t=>t.type==='earn' && new Date(t.createdAt).toDateString()===today).length, pendingRedemptions:M.redemptions.filter(r=>r.status==='pending'||r.status==='preparing').length, pointsPerBaht:Number(M.settings.pointsPerBaht), revenue:Math.round(M.tx.filter(t=>t.type==='earn').reduce((a,t)=>a+(t.saleValue||0),0)*100)/100, issuedValue:Math.round(M.tx.filter(t=>t.type==='earn').reduce((a,t)=>a+t.points,0)/Number(M.settings.pointsPerBaht)*100)/100, outstandingValue:Math.round(M.members.reduce((a,m)=>a+m.points,0)/Number(M.settings.pointsPerBaht)*100)/100 }; }
+    case 'adminWasteTypes': needStaff(true); return M.wasteTypes.slice().sort((a,b)=>a.sort-b.sort);
+    case 'adminSaveWasteType': { needStaff(true); if(!String(p.name||'').trim()) err('กรุณาใส่ชื่อประเภทขยะ'); const rate = Number(p.pointsPerUnit); if(!(rate>=0)) err('แต้มต่อหน่วยไม่ถูกต้อง'); let t = M.wasteTypes.find(x => x.wasteTypeId === p.wasteTypeId); if(!t){ t = { wasteTypeId:nextId(M.wasteTypes.map(x=>x.wasteTypeId),'WT',2) }; M.wasteTypes.push(t); } Object.assign(t, { name:p.name.trim(), unit:p.unit||'กก.', pointsPerUnit:rate, salePrice:Number(p.salePrice)||0, description:p.description||'', active:!!p.active, sort:Number(p.sort)||99 }); return { ...t }; }
+    case 'adminMembers': { needStaff(true); const q = String(p.q||'').toLowerCase(); return M.members.filter(m => !q || m.name.toLowerCase().includes(q) || m.memberId.toLowerCase().includes(q) || m.phone.includes(q.replace(/\D/g,'')||'§')).slice().reverse().map(m => ({ memberId:m.memberId, name:m.name, phone:m.phone, points:m.points, totalKg:Math.round(m.totalKg*100)/100, createdAt:m.createdAt, status:m.status })); }
+    case 'adminResetPin': { needStaff(true); checkPin(String(p.pin||'')); const m = M.members.find(x=>x.memberId===p.memberId); if(!m) err('ไม่พบสมาชิก'); m.pin = String(p.pin); return true; }
+    case 'adminAdjustPoints': { const st = needStaff(true); const d = rp(Number(p.delta)); if(!d) err('กรุณาใส่จำนวนแต้มที่ต้องการปรับ (เช่น 10 หรือ -10)'); if(!String(p.note||'').trim()) err('กรุณาใส่เหตุผลในการปรับแต้ม'); const m = M.members.find(x=>x.memberId===p.memberId); if(m.points + d < 0) err('แต้มคงเหลือจะติดลบ'); m.points = rp(m.points + d); M.tx.push({ txId:'A'+Date.now(), memberId:m.memberId, type:'adjust', wasteName:'ปรับแต้มโดยเจ้าหน้าที่', quantity:'', unit:'', points:d, staffId:st.staffId, note:p.note, createdAt:new Date().toISOString() }); return { balance:m.points }; }
+    case 'adminRewards': needStaff(true); return M.rewards.slice().sort((a,b)=>(a.sort||99)-(b.sort||99)).map(r => ({ rewardId:r.rewardId, name:r.name, category:r.category, points:r.points, cost:r.cost||0, description:r.description, images:r.imageUrls?r.imageUrls.split('\n'):[], stock:r.stock, active:!!r.active, sort:r.sort||99, kind:r.kind==='coupon'?'coupon':'item', sponsor:r.sponsor||'' }));
+    case 'adminSaveReward': {
+      needStaff(true);
+      if(!String(p.name||'').trim()) err('กรุณาใส่ชื่อของรางวัล');
+      const pts = rp(Number(p.points)); if(!(pts > 0)) err('แต้มที่ใช้แลกต้องมากกว่า 0');
+      const imgs = (p.images||[]).concat(p.newPhotos||[]); if(imgs.length > 6) err('ใส่รูปได้สูงสุด 6 รูปต่อรายการ');
+      let r = M.rewards.find(x => x.rewardId === p.rewardId);
+      if(!r){ r = { rewardId:nextId(M.rewards.map(x=>x.rewardId),'RW',2) }; M.rewards.push(r); }
+      const stock = String(p.stock??'').trim();
+      Object.assign(r, { name:p.name.trim(), category:p.category, points:pts, cost:Number(p.cost)||0, description:p.description||'', imageUrls:imgs.join('\n'), stock:stock===''?'':Math.round(Number(stock)), active:!!p.active, sort:Number(p.sort)||99, kind:p.kind==='coupon'?'coupon':'item', sponsor:String(p.sponsor||'').trim() });
+      return { rewardId:r.rewardId };
+    }
+    case 'adminStaff': needStaff(true); return M.staff.map(sView);
+    case 'adminSaveStaff': { const me = needStaff(true); const u = String(p.username||'').trim().toLowerCase(); if(!/^[a-z0-9_.]{3,30}$/.test(u)) err('ชื่อผู้ใช้ใช้ได้เฉพาะ a-z 0-9 _ . ยาว 3-30 ตัว'); if(p.password && p.password.length<8) err('รหัสผ่านต้องยาวอย่างน้อย 8 ตัวอักษร'); let s = M.staff.find(x=>x.staffId===p.staffId); if(M.staff.some(x=>x.username===u && x!==s)) err('ชื่อผู้ใช้นี้มีอยู่แล้ว'); if(!s){ if(!p.password) err('กรุณาตั้งรหัสผ่านให้บัญชีใหม่'); s = { staffId:nextId(M.staff.map(x=>x.staffId),'ST',2) }; M.staff.push(s); } else if(s===me && (!p.active || p.role!=='admin')) err('ไม่สามารถปิดใช้งานหรือลดสิทธิ์บัญชีตัวเองได้'); Object.assign(s, { username:u, displayName:p.displayName||u, role:p.role==='admin'?'admin':'staff', active:!!p.active }); if(p.password) s.password = p.password; return sView(s); }
+    case 'adminSettings': needStaff(true); return { ...M.settings };
+    case 'adminSaveSettings': needStaff(true); ['facebookPage','email','dataController','dataControllerAddress','brandFacebook','brandLine'].forEach(k => { if(k in p) M.settings[k] = String(p[k]).trim(); }); M.settings.requirePhoto = String(!!p.requirePhoto); if('postMinPoints' in p) M.settings.postMinPoints = String(Math.max(0, rp(Number(p.postMinPoints)||0))); return true;
+    case 'adminUploadLogo': needStaff(true); M.settings.logoUrl = p.photo; return { logoUrl:p.photo };
+  }
+  err('ไม่รู้จักคำสั่งนี้');
+}
+
+/* =========================================================
+ *  เริ่มต้น
+ * ========================================================= */
+async function refreshPublic(){ S.pub = await api('publicData'); }
+(async function init(){
+  if(DEMO) $('#demoBar').hidden = false;
+  try{ await refreshPublic(); }
+  catch(e){ view(`<div class="notice err">โหลดข้อมูลไม่ได้: ${esc(e.message)}</div>`); return; }
+  route();
+})();
+</script>
+</body>
+</html>
